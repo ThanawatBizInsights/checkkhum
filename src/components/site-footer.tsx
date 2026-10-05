@@ -31,7 +31,17 @@ export function SiteFooter() {
           <h2 className="text-base text-paper">ติดต่อ</h2>
           <ul className="mt-2 grid gap-1 text-[0.9375rem]">
             <li>โทร {phoneChannel.display}</li>
-            <li>LINE {lineChannel.display}</li>
+            <li>
+              LINE{" "}
+              {lineChannel.href ? (
+                <a href={lineChannel.href} target="_blank" rel="noopener noreferrer" data-line-link className="hover:text-paper hover:underline">
+                  {lineChannel.display}
+                  <span className="sr-only"> (เปิดในแท็บใหม่)</span>
+                </a>
+              ) : (
+                lineChannel.display
+              )}
+            </li>
             <li>{hoursText}</li>
             <li>
               <Link href="/contact" className="hover:text-paper hover:underline">

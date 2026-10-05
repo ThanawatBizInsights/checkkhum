@@ -42,7 +42,7 @@ desktop                                   mobile
 [                      ][ submit       ]  [products        ]
 [products: car (lead) | EV | พ.ร.บ. | travel]  [how we help     ]
 [how we help: check / compare / coordinate ]  [contact band    ]
-[contact band: phone, LINE, QR            ]  [sticky quote bar]
+[contact band: phone, LINE, QR            ]  [sticky bar: LINE | quote]
 ```
 
 Left-aligned throughout; the poster centres its headline, but centred multi-line
@@ -88,6 +88,21 @@ product page, desktop                      product page, mobile
 - On the staff dashboard, quiet sky buttons disappeared on the sky background; added an
   outline button variant.
 - The table caption repeated the section heading; reworded it to say what the table does.
+
+## LINE Official Account (lin.ee/86TezJV)
+
+- **Hierarchy:** LINE is the second way to get a quote, so its buttons are quiet
+  outline buttons (white, navy text) with the LINE icon in LINE's green
+  (`--color-line-brand` `#06C755`, used for the icon only). The quote slip stays the one
+  loud element; LINE never takes the teal primary style.
+- **Placement:** homepage hero under the lede ("คุยกับเราผ่าน LINE"); mobile sticky bar
+  as a compact "LINE" button beside the full-width quote button; LINE's official
+  "เพิ่มเพื่อน" artwork in the contact band and contact page, unmodified; quotation
+  confirmation ("ติดต่อทีมงานผ่าน LINE").
+- **Copy:** the confirmation says plainly that the LINE button opens a chat but does
+  not send the enquiry, and asks the visitor to quote their reference number there.
+- **Critique:** the reference number wrapped mid-code in the confirmation note on
+  phones; it is now kept on one line.
 
 ## Review against the brief
 

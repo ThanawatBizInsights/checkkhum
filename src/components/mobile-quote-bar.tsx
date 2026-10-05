@@ -2,11 +2,13 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ButtonLink } from "./button";
+import { lineLinkProps } from "./line-links";
+import { ButtonLink, buttonClasses } from "./button";
+import { LineIcon } from "./icons";
 
 /**
- * Floating quote button on phones. Hidden on the quote page and while any
- * quote form (`[data-quote-form]`) is on screen, so it never covers the form.
+ * Floating LINE + quote buttons on phones. Hidden on the quote page and while
+ * any quote form (`[data-quote-form]`) is on screen, so it never covers the form.
  */
 export function MobileQuoteBar() {
   const pathname = usePathname();
@@ -40,9 +42,23 @@ export function MobileQuoteBar() {
       }`}
       aria-hidden={hidden || undefined}
     >
-      <ButtonLink href="/quote" block tabIndex={hidden ? -1 : undefined} className="shadow-[0_10px_24px_-8px_rgba(4,24,63,.5)]">
-        ขอใบเสนอราคา
-      </ButtonLink>
+      <div className="flex gap-2 [&>a]:shadow-[0_10px_24px_-8px_rgba(4,24,63,.5)]">
+        {lineLinkProps && (
+          <a
+            {...lineLinkProps}
+            data-line-link
+            tabIndex={hidden ? -1 : undefined}
+            className={`${buttonClasses("outline", "md")} shrink-0 gap-1.5 px-5`}
+          >
+            <LineIcon className="size-6 text-line-brand" />
+            LINE
+            <span className="sr-only"> (เปิดในแท็บใหม่)</span>
+          </a>
+        )}
+        <ButtonLink href="/quote" block tabIndex={hidden ? -1 : undefined}>
+          ขอใบเสนอราคา
+        </ButtonLink>
+      </div>
     </div>
   );
 }

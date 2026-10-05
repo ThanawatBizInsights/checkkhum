@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { products, type ProductSlug } from "@/content/products";
 import { ContactChannels, LineQr } from "./contact-channels";
+import { LineAddFriendButton } from "./line-links";
 import { productIcons } from "./icons";
 
 /** Title block for inner pages. */
@@ -124,6 +125,9 @@ export function ContactBand({ title = "สอบถาม หรือขอใ�
             {title}
           </h2>
           <ContactChannels tone="dark" />
+          <div className="mt-6">
+            <LineAddFriendButton />
+          </div>
         </div>
         <LineQr tone="dark" />
       </div>

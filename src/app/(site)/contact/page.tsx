@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ContactChannels, LineQr } from "@/components/contact-channels";
 import { ContactForm } from "@/components/contact-form";
+import { LineAddFriendButton } from "@/components/line-links";
 import { PageIntro } from "@/components/sections";
 
 export const metadata: Metadata = {
@@ -20,6 +21,9 @@ export default function ContactPage() {
           <div>
             <h2 className="mb-5 text-[1.5rem]">ช่องทางติดต่อ</h2>
             <ContactChannels tone="light" showEmail />
+            <div className="mt-6">
+              <LineAddFriendButton />
+            </div>
             <div className="mt-8">
               <LineQr tone="light" />
             </div>

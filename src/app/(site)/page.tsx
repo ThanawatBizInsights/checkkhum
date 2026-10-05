@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { LineButton } from "@/components/line-links";
 import { QuoteForm } from "@/components/quote-form";
 import { ContactBand, HelpSection, ProductOverview } from "@/components/sections";
 
@@ -15,6 +16,7 @@ export default function HomePage() {
             <p className="mt-3.5 max-w-[34em] text-lg text-ink-soft">
               ช่วยเปรียบเทียบแผน ก่อนตัดสินใจ บอกรุ่นรถกับแผนที่สนใจ เราจะส่งใบเสนอราคาจากหลายบริษัทให้ดูเทียบกัน
             </p>
+            <LineButton className="mt-5">คุยกับเราผ่าน LINE</LineButton>
           </div>
 
           <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">

@@ -15,7 +15,12 @@ export const siteConfig = {
   contact: {
     /** Mobile or landline, digits only or with dashes, e.g. "081-234-5678". */
     phone: "",
-    /** LINE Official Account ID including "@", e.g. "@checkkhum". */
+    /**
+     * LINE Official Account link. Every LINE button on the site opens this.
+     * It only opens the chat: it never sends form details to LINE.
+     */
+    lineUrl: "https://lin.ee/86TezJV",
+    /** LINE Official Account ID including "@", e.g. "@checkkhum". Shown as text if set. */
     lineId: "",
     /** Path under /public to the LINE QR image, e.g. "/images/line-qr.png". */
     lineQrImage: "",

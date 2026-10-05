@@ -44,6 +44,11 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 - **Contact details:** never hard-code a phone number, LINE ID, email or address in a page or
   component. Read from `siteConfig` via `src/lib/contact.ts`. Never invent real-looking values;
   empty config values must render the poster placeholders (`[เบอร์โทรศัพท์]`, `[LINE ID]`).
+- **LINE links:** every LINE button uses `siteConfig.contact.lineUrl` through
+  `src/components/line-links.tsx` (`LineButton`, `LineAddFriendButton`, `lineLinkProps`),
+  opening in a new tab with `rel="noopener noreferrer"`. LINE links never carry form
+  details; enquiries are always saved through `/api/enquiries`. Use LINE's official
+  "เพิ่มเพื่อน" image unmodified (plain `<img>` from `scdn.line-apps.com`, height 36).
 - **Secrets:** `SUPABASE_SECRET_KEY`, `ENQUIRY_HASH_SALT`, `TURNSTILE_SECRET_KEY` and
   `STAFF_*` are server-only. Read them only in `src/lib/server/*` (which imports
   `server-only`) or server routes. Never prefix them with `NEXT_PUBLIC_`, log them, return

@@ -47,10 +47,18 @@ npm start
 
 ## Contact details
 
-All contact details are in **`src/config/site.ts`**: phone, LINE ID, LINE QR image, email,
-opening hours, and the company details used in the privacy notice. Empty values show the
-poster's placeholders (`[เบอร์โทรศัพท์]`, `[LINE ID]`). For the QR code, add the image to
-`public/images/` and set `lineQrImage`, e.g. `"/images/line-qr.png"`.
+All contact details are in **`src/config/site.ts`**: phone, LINE Official Account link,
+LINE ID, LINE QR image, email, opening hours, and the company details used in the privacy
+notice. Empty values show the poster's placeholders (`[เบอร์โทรศัพท์]`, `[LINE ID]`). For the
+QR code, add the image to `public/images/` and set `lineQrImage`, e.g. `"/images/line-qr.png"`.
+
+**LINE.** `contact.lineUrl` (currently `https://lin.ee/86TezJV`) is used by every LINE
+button: the homepage hero ("คุยกับเราผ่าน LINE"), the mobile sticky bar ("LINE"), the
+official "เพิ่มเพื่อน" button in the contact sections, the contact lists and footer, and
+the quotation confirmation ("ติดต่อทีมงานผ่าน LINE"). All open in a new tab with
+`rel="noopener noreferrer"`. The link only opens the LINE chat; it never sends form
+details. Enquiries are still saved through `/api/enquiries`, and the confirmation asks
+the visitor to quote their reference number in the chat.
 
 ## Enquiry database (Supabase)
 
@@ -132,8 +140,7 @@ production. Then, in the Supabase dashboard:
 If `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are both empty, the endpoint still
 validates and spam-checks each enquiry, then replies `mode: "demo"`. The form
 keeps it as *ข้อมูลสาธิต* (demo data) in the visitor's own browser and says so
-on screen; the visitor can send the summary by LINE or phone once those are
-configured. Setting only one of the two variables is treated as a
+on screen; the visitor can copy the summary and paste it into the LINE chat, or call. Setting only one of the two variables is treated as a
 misconfiguration and the endpoint returns an error rather than losing enquiries.
 
 **Staff area.** One shared demo account and a signed, httpOnly session cookie (8 hours).

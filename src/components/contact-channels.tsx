@@ -25,9 +25,10 @@ function Channel({
         <a
           href={channel.href}
           className={`text-xl underline underline-offset-[5px] ${dark ? "text-paper focus-visible:outline-[#5fd3bd]" : "text-ink"}`}
-          {...(channel.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          {...(channel.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer", "data-line-link": "" } : {})}
         >
           {channel.display}
+          {channel.href.startsWith("http") && <span className="sr-only"> (เปิดในแท็บใหม่)</span>}
         </a>
       ) : (
         <span className={`text-xl ${dark ? "text-paper/80" : "text-ink-soft"}`}>{channel.display}</span>

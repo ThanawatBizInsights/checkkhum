@@ -21,8 +21,11 @@ export const phoneChannel: ContactChannel = phoneDigits
   ? { display: formatThaiPhone(phoneDigits), href: `tel:${phoneDigits}` }
   : { display: placeholders.phone, href: null };
 
-export const lineChannel: ContactChannel = contact.lineId
-  ? { display: contact.lineId, href: `https://line.me/R/ti/p/${encodeURIComponent(contact.lineId)}` }
+/** The LINE Official Account link from the config, or null if not set. */
+export const lineUrl: string | null = contact.lineUrl || null;
+
+export const lineChannel: ContactChannel = lineUrl
+  ? { display: contact.lineId || lineUrl.replace(/^https?:\/\//, ""), href: lineUrl }
   : { display: placeholders.lineId, href: null };
 
 export const emailChannel: ContactChannel = contact.email
@@ -30,12 +33,6 @@ export const emailChannel: ContactChannel = contact.email
   : { display: placeholders.email, href: null };
 
 export const hoursText = contact.hours || placeholders.hours;
-
-/** LINE deep link that opens a chat with the message pre-filled, or null. */
-export function lineMessageUrl(text: string): string | null {
-  if (!contact.lineId) return null;
-  return `https://line.me/R/oaMessage/${encodeURIComponent(contact.lineId)}/?${encodeURIComponent(text)}`;
-}
 
 export function legalValue(key: keyof typeof siteConfig.legal): string {
   return siteConfig.legal[key] || placeholders[key];

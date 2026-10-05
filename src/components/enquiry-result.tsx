@@ -1,25 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { lineMessageUrl, phoneChannel } from "@/lib/contact";
+import { lineUrl, phoneChannel } from "@/lib/contact";
 import { Button, buttonClasses } from "./button";
 import { DemoBadge } from "./demo-notice";
+import { LineButton } from "./line-links";
 import type { EnquiryResultState } from "./use-enquiry-submission";
 
-function HandoffLinks({ text, primary }: { text: string; primary: boolean }) {
-  const lineUrl = lineMessageUrl(text);
+/**
+ * Ways to reach the team after submitting. The LINE button only opens our
+ * LINE Official Account; it does not send the enquiry details.
+ */
+function ContactTeam({ note }: { note: React.ReactNode }) {
   return (
     <>
-      {lineUrl && (
-        <a className={buttonClasses(primary ? "primary" : "quiet", "md", true)} href={lineUrl} target="_blank" rel="noopener noreferrer">
-          ส่งทาง LINE
-        </a>
-      )}
-      {phoneChannel.href && (
-        <a className={buttonClasses(primary && !lineUrl ? "primary" : "quiet", "md", true)} href={phoneChannel.href}>
-          โทร {phoneChannel.display}
-        </a>
-      )}
+      <div className="grid gap-2.5">
+        <LineButton block>ติดต่อทีมงานผ่าน LINE</LineButton>
+        {phoneChannel.href && (
+          <a className={buttonClasses("quiet", "md", true)} href={phoneChannel.href}>
+            โทร {phoneChannel.display}
+          </a>
+        )}
+      </div>
+      {lineUrl && <p className="mt-2 text-[0.9375rem] text-ink-soft">{note}</p>}
     </>
   );
 }
@@ -61,9 +64,14 @@ export function EnquiryResult({
         <pre className="mb-4 whitespace-pre-wrap break-words rounded-[var(--radius-control)] bg-sky px-4 py-3.5 font-body text-base leading-[1.75] text-ink">
           {result.summary}
         </pre>
-        <div className="grid gap-2.5">
-          <HandoffLinks text={`เลขที่คำขอ ${result.reference}\n${result.summary}`} primary={false} />
-        </div>
+        <ContactTeam
+          note={
+            <>
+              ปุ่ม LINE จะเปิดแชทกับเรา แต่ไม่ได้ส่งรายละเอียดคำขอไปให้ แจ้งเลขที่คำขอ{" "}
+              <span className="whitespace-nowrap">{result.reference}</span> ในแชทได้เลย
+            </>
+          }
+        />
         <button type="button" onClick={onReset} className="mt-3 py-1 font-medium text-teal-ink underline underline-offset-4">
           ส่งคำขออื่น
         </button>
@@ -97,13 +105,11 @@ export function EnquiryResult({
         {result.summary}
       </pre>
 
-      <div className="grid gap-2.5">
-        <HandoffLinks text={result.summary} primary />
-        <Button variant="quiet" block onClick={copy}>
-          คัดลอกข้อความ
-        </Button>
-      </div>
-      {!lineMessageUrl(result.summary) && !phoneChannel.href && (
+      <ContactTeam note="ปุ่ม LINE จะเปิดแชทกับเรา แต่ไม่ได้ส่งข้อความนี้ไปให้ คัดลอกข้อความแล้ววางในแชทได้เลย" />
+      <Button variant="quiet" block onClick={copy} className="mt-2.5">
+        คัดลอกข้อความ
+      </Button>
+      {!lineUrl && !phoneChannel.href && (
         <p className="mt-3 text-[0.9375rem] text-ink-soft">
           ยังไม่ได้ตั้งค่าเบอร์โทรและ LINE ของเว็บไซต์ ช่องทางส่งจึงยังไม่เปิดใช้งาน
         </p>
