@@ -24,7 +24,7 @@ export function StaffNav({ items }: { items: Item[] }) {
               >
                 {item.label}
                 {item.badge ? (
-                  <span className={`rounded-full px-2 text-sm ${current ? "bg-teal text-paper" : "bg-teal/90 text-paper"}`}>{item.badge}</span>
+                  <span className={`rounded-full px-2 text-[0.9375rem] ${current ? "bg-teal text-paper" : "bg-teal/90 text-paper"}`}>{item.badge}</span>
                 ) : null}
               </Link>
             </li>

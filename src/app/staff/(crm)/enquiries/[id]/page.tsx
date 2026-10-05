@@ -178,7 +178,7 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
                           กรมธรรม์ {policy.policy_number}
                         </Link>
                       )}
-                      <span className="text-sm text-ink-soft">โดย {q.staff_users?.full_name ?? "-"}</span>
+                      <span className="text-[0.9375rem] text-ink-soft">โดย {q.staff_users?.full_name ?? "-"}</span>
                     </div>
                     {q.notes && <p className="text-[0.9375rem]">{q.notes}</p>}
                     {staff.canWrite && !policy && (

@@ -93,3 +93,20 @@ export async function runRenewalJobNow(_prev: ActionResult, formData: FormData):
     return `สร้างงานต่ออายุ ${result.tasks_created} รายการ และการแจ้งเตือน ${result.reminders_created} รายการ`;
   });
 }
+
+export async function resetStaffPassword(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const schema = z.object({
+    id: f.uuid(),
+    temp_password: z.string().min(12, "รหัสผ่านชั่วคราวต้องยาวอย่างน้อย 12 ตัวอักษร").max(200),
+  });
+  return runAction("admin", schema, formData, async ({ id, temp_password }, staff) => {
+    // Only existing staff accounts, read through the admin's own RLS session.
+    check(await staff.db.from("staff_users").select("id").eq("id", id).single());
+    const config = getBackendConfig();
+    if (config.mode !== "database") throw new ActionFailure("ยังไม่ได้ตั้งค่า SUPABASE_SECRET_KEY");
+    const admin = getSupabaseAdmin(config.supabaseUrl, config.secretKey);
+    const { error } = await admin.auth.admin.updateUserById(id, { password: temp_password });
+    if (error) throw new ActionFailure("ตั้งรหัสผ่านไม่สำเร็จ ลองรหัสที่เดายากกว่านี้");
+    return "ตั้งรหัสผ่านชั่วคราวแล้ว ส่งให้พนักงานทางช่องทางที่ปลอดภัย และให้เปลี่ยนหลังเข้าสู่ระบบ";
+  });
+}

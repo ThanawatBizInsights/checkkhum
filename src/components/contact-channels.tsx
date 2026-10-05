@@ -59,7 +59,7 @@ export function LineQr({ tone = "dark" }: { tone?: "dark" | "light" }) {
         {src ? (
           <Image src={src} width={140} height={140} alt="QR code สำหรับเพิ่มเพื่อนทาง LINE" className="size-full object-contain" />
         ) : (
-          <span className="text-center text-sm text-ink-soft">พื้นที่สำหรับ QR LINE</span>
+          <span className="text-center text-[0.9375rem] text-ink-soft">พื้นที่สำหรับ QR LINE</span>
         )}
       </div>
       <figcaption className={`mt-2 text-[0.9375rem] ${tone === "dark" ? "text-paper/85" : "text-ink-soft"}`}>สแกนเพื่อเพิ่มเพื่อนทาง LINE</figcaption>

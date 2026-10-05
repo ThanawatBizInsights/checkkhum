@@ -84,7 +84,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                     <Link href={`/staff/enquiries/${e.id}`} className="font-semibold text-navy hover:underline">
                       {e.product ? productLabels[e.product] : productLabels.contact}
                     </Link>
-                    <span className="flex items-center gap-2 text-sm text-ink-soft">
+                    <span className="flex items-center gap-2 text-[0.9375rem] text-ink-soft">
                       {e.reference}, {formatDate(e.created_at)} <StatusBadge status={e.status} />
                     </span>
                   </li>
@@ -125,7 +125,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                       <Link href={`/staff/policies/${p.id}`} className="font-semibold text-navy hover:underline">
                         {p.policy_number}, {productLabels[p.product]}
                       </Link>
-                      <span className="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
+                      <span className="flex flex-wrap items-center gap-2 text-[0.9375rem] text-ink-soft">
                         {p.insurers?.name_th}, ถึง {formatDate(p.end_date)}
                         <Pill tone={p.status !== "active" ? "neutral" : left <= 30 ? "bad" : left <= 90 ? "warn" : "good"}>
                           {p.status === "active" ? (left >= 0 ? `เหลือ ${left} วัน` : "หมดอายุแล้ว") : policyStatusLabels[p.status]}
@@ -252,7 +252,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
               ) : (
                 <p className="whitespace-pre-line">{c.notes || <span className="text-ink-soft">ไม่มีหมายเหตุ</span>}</p>
               )}
-              <p className="mt-3 text-sm text-ink-soft">เบอร์โทรเป็นตัวระบุลูกค้า เปลี่ยนได้โดยผู้ดูแลระบบในฐานข้อมูล</p>
+              <p className="mt-3 text-[0.9375rem] text-ink-soft">เบอร์โทรเป็นตัวระบุลูกค้า เปลี่ยนได้โดยผู้ดูแลระบบในฐานข้อมูล</p>
             </Sheet>
 
             <Sheet title="การยินยอม (PDPA)" id="consent-title">
@@ -262,7 +262,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                     <li key={r.id} className="flex flex-wrap items-center justify-between gap-2">
                       <span>{consentLabels[r.purpose]}</span>
                       <Pill tone={r.granted ? "good" : "bad"}>{r.granted ? "ยินยอม" : "ไม่ยินยอม"}</Pill>
-                      <span className="w-full text-sm text-ink-soft">
+                      <span className="w-full text-[0.9375rem] text-ink-soft">
                         {formatDateTime(r.captured_at)}, ประกาศฉบับ {r.notice_version}
                       </span>
                     </li>
@@ -276,7 +276,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
               )}
             </Sheet>
 
-            <p className="text-sm text-ink-soft">เบี้ยรวมของกรมธรรม์ที่คุ้มครองอยู่: {formatBaht((policies.data ?? []).filter((p) => p.status === "active").reduce((s, p) => s + Number(p.premium), 0))}</p>
+            <p className="text-[0.9375rem] text-ink-soft">เบี้ยรวมของกรมธรรม์ที่คุ้มครองอยู่: {formatBaht((policies.data ?? []).filter((p) => p.status === "active").reduce((s, p) => s + Number(p.premium), 0))}</p>
           </div>
         </div>
       </div>

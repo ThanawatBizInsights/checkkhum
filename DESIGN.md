@@ -126,6 +126,13 @@ product page, desktop                      product page, mobile
   "add quotation" is a permanent section (it collapsed and hid its success message);
   wide tables no longer push the page sideways on phones (`min-w-0` on sheets).
 
+## Launch audit fixes
+
+- No text below 15px anywhere (CRM name/role/badges and the QR placeholder were 14px).
+- Pipeline strip on phones: two rows, open stages above and outcomes (won/lost) below,
+  so Thai labels wrap only at word boundaries instead of being squeezed into five columns.
+- Filter pills on the enquiry list are 44px tall touch targets.
+
 ## Review against the brief
 
 - *Generic default caught:* a four-up grid of identical rounded product cards with soft

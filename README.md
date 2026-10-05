@@ -213,6 +213,16 @@ npx supabase db reset && npm run build && npm start
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:crm   # 75 end-to-end checks
 ```
 
+Full launch audit (mobile layouts at 360/390px, Thai fonts and text size, every internal
+link, anonymous data access via REST/RPC/GraphQL/API/server actions, secrets in the
+browser bundle and rendered HTML, cookie flags, security headers):
+
+```bash
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run audit
+```
+
+Latest results and the launch blockers: [`docs/launch-readiness.md`](docs/launch-readiness.md).
+
 `verify:crm` signs in as each role and confirms unauthorized access is blocked at three
 layers: pages (redirects, "no access"), server actions (replayed with a lower-privileged
 session) and the database API (real staff tokens against RLS). It also walks through the

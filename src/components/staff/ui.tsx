@@ -46,7 +46,7 @@ const statusStyles: Record<string, string> = {
 
 export function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={`inline-flex items-center whitespace-nowrap rounded-full border-[1.5px] px-2.5 py-0.5 text-sm font-semibold ${statusStyles[status] ?? statusStyles.new}`}>
+    <span className={`inline-flex items-center whitespace-nowrap rounded-full border-[1.5px] px-2.5 py-0.5 text-[0.9375rem] font-semibold ${statusStyles[status] ?? statusStyles.new}`}>
       {enquiryStatusLabels[status] ?? status}
     </span>
   );
@@ -59,7 +59,7 @@ export function Pill({ children, tone = "neutral" }: { children: ReactNode; tone
     warn: "bg-warn-bg text-warn",
     bad: "bg-error-bg text-error",
   };
-  return <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold ${tones[tone]}`}>{children}</span>;
+  return <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[0.9375rem] font-semibold ${tones[tone]}`}>{children}</span>;
 }
 
 /**
@@ -80,22 +80,23 @@ export function PipelineStrip({
 }) {
   const reachedIndex = current ? Math.max(pipeline.indexOf(current === "quoting" ? "contacted" : (current as (typeof pipeline)[number])), 0) : -1;
   return (
-    <ol className="grid grid-cols-5 overflow-hidden rounded-[var(--radius-control)] border-[1.5px] border-navy bg-paper text-center">
+    // Phones: open stages on the first row, the two outcomes on the second.
+    <ol className="grid grid-cols-6 gap-px overflow-hidden rounded-[var(--radius-control)] border-[1.5px] border-navy bg-line text-center sm:grid-cols-5">
       {pipeline.map((s, i) => {
         const isClosed = s === "won" || s === "lost";
         const reached = current ? (isClosed ? current === s : i <= reachedIndex && current !== "lost" && current !== "spam") : false;
         const isActive = active === s || current === s;
         const body = (
           <>
-            <span className="block text-[0.8125rem] font-semibold leading-tight sm:text-[0.9375rem]">{enquiryStatusLabels[s]}</span>
+            <span className="block text-[0.9375rem] font-semibold leading-tight sm:text-[0.9375rem]">{enquiryStatusLabels[s]}</span>
             {counts && <span className="mt-0.5 block font-display text-xl font-semibold leading-none sm:text-2xl">{counts[s] ?? 0}</span>}
           </>
         );
-        const cls = `block h-full px-1 py-2.5 sm:px-2 ${i > 0 ? "border-l border-line" : ""} ${
-          isActive ? "bg-navy text-paper" : reached ? (s === "won" ? "bg-teal text-paper" : "bg-mint text-teal-ink") : "text-navy"
+        const cls = `block h-full px-1.5 py-2.5 sm:px-2 ${
+          isActive ? "bg-navy text-paper" : reached ? (s === "won" ? "bg-teal text-paper" : "bg-mint text-teal-ink") : "bg-paper text-navy"
         }`;
         return (
-          <li key={s} className="min-w-0">
+          <li key={s} className={`min-w-0 ${i < 3 ? "col-span-2" : "col-span-3"} sm:col-span-1`}>
             {hrefFor ? (
               <Link href={hrefFor(s)} aria-current={isActive ? "page" : undefined} className={`${cls} hover:bg-sky hover:text-navy`}>
                 {body}
@@ -124,7 +125,7 @@ export function Field({ label, htmlFor, children, hint }: { label: string; htmlF
         {label}
       </label>
       {children}
-      {hint && <p className="mt-1 text-sm text-ink-soft">{hint}</p>}
+      {hint && <p className="mt-1 text-[0.9375rem] text-ink-soft">{hint}</p>}
     </div>
   );
 }

@@ -108,7 +108,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     />
                   </span>
                   <span className="min-w-[5.5rem] text-right font-display text-lg font-semibold text-navy" data-stage={s.label}>
-                    {s.n} <span className="text-sm font-normal text-ink-soft">({pct(s.n, r.enquiries)})</span>
+                    {s.n} <span className="text-[0.9375rem] font-normal text-ink-soft">({pct(s.n, r.enquiries)})</span>
                   </span>
                 </li>
               ))}
@@ -162,7 +162,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               </Sheet>
             ))}
           </div>
-          <p className="text-sm text-ink-soft">
+          <p className="text-[0.9375rem] text-ink-soft">
             ใบเสนอราคาที่ส่งในช่วงนี้ {r.quotations_sent} รายการ, ออกกรมธรรม์ {r.policies} ฉบับ
           </p>
         </div>
