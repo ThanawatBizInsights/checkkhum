@@ -21,6 +21,11 @@ from the approved CheckKhum roll-up poster.
 | `--sky` | `#EEF4FB` | Page wash behind the hero, echoing the poster sky |
 | `--paper` | `#FFFFFF` | Form panel and surfaces |
 
+Tokens are defined in `src/app/globals.css` (`@theme`) and used as Tailwind classes
+(`text-navy`, `bg-teal`, …). Demo labels use `--color-demo` `#8A5A00` on `--color-demo-bg`
+`#FFF4D6`: an amber that sits outside the brand palette on purpose, so it never reads as part
+of the product.
+
 **Type.** Prompt 600/700 for headings: heavy, loopless Thai close to the poster headline.
 IBM Plex Sans Thai Looped 400/500/600 for body, labels and the form: looped letterforms
 are easier for older readers and for telling similar Thai glyphs apart in small text.
@@ -49,8 +54,40 @@ Thai is harder to scan on screen.
    everything else stays quiet.
 2. Products keep the poster's hierarchy: ประกันรถยนต์ (ชั้น 1, 2+, 3+) leads, the other
    three follow as a lighter list, not a grid of identical cards.
-3. Contact details live in one config object (`assets/app.js`). Until real numbers are
-   set, the page shows the poster's placeholders rather than invented ones.
+3. Contact details live in one config file (`src/config/site.ts`). Until real numbers are
+   set, the site shows the poster's placeholders rather than invented ones.
+
+## Pages (Next.js version)
+
+```
+product page, desktop                      product page, mobile
+[icon, h1, intro          ][ quote slip  ]  [icon, h1, intro ]
+[what's covered (3)       ][ (sticky,    ]  [quote slip      ]
+[car: tier table ✓ / –    ][  plan pre-  ]  [what's covered  ]
+[check before choosing | what we need   ]  [tier table      ]
+[other products list                     ]  [checklists      ]
+[contact band                            ]  [contact band    ]
+```
+
+- **Quote page:** the slip is the `h1`. Beside it, "after you send": the one place with
+  numbered markers, because it really is a three-step sequence.
+- **Contact page:** channels and QR on the left; an "ask us to call back" form on the right.
+- **Privacy notice:** long-form reading column (≤ 44em) with gaps highlighted in the demo
+  amber, so the draft can't be mistaken for a final notice.
+- **Staff area:** separate chrome (logo mark only, no marketing nav), a persistent amber
+  demo bar, and a plain list of enquiries rather than a dense table, because staff will
+  often check it on a phone.
+
+## Critique notes from screenshots
+
+- The demo notice beside its badge squeezed Thai text into a narrow column inside the form;
+  stacked the label above the text instead.
+- The car tier table overflowed at 390px; fixed-layout table with narrow tier columns fits
+  without horizontal scroll.
+- The footer merged into the navy contact band; added a hairline between them.
+- On the staff dashboard, quiet sky buttons disappeared on the sky background; added an
+  outline button variant.
+- The table caption repeated the section heading; reworded it to say what the table does.
 
 ## Review against the brief
 
@@ -65,7 +102,7 @@ Thai is harder to scan on screen.
 
 ## Open items for the client
 
-- Phone number, LINE ID and the LINE QR image (`CONTACT` in `assets/app.js`, QR at `assets/line-qr.png`).
+- Phone number, LINE ID, LINE QR image and company details in `src/config/site.ts`.
 - The logo and car image are cropped from the poster at its delivered resolution.
   Swap in the original vector logo and the full-size car render when available.
-- The form has no backend: it builds the request and hands it to LINE or the phone.
+- Forms save demo submissions only; see README "Demo mode".

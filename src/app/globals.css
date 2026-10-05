@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+/* Brand tokens: see DESIGN.md. Navy and teal come from the logo. */
+@theme {
+  --color-navy: #0a2259;
+  --color-navy-deep: #04183f;
+  --color-teal: #0b9c84;
+  --color-teal-ink: #06725f;
+  --color-sky: #eef4fb;
+  --color-mint: #e3f4f0;
+  --color-paper: #ffffff;
+  --color-ink: #1b2740;
+  --color-ink-soft: #4a5670;
+  --color-line: #d5deea;
+  --color-error: #b42318;
+  --color-demo: #8a5a00;
+  --color-demo-bg: #fff4d6;
+
+  --font-display: "Prompt", "Noto Sans Thai", "Leelawadee UI", sans-serif;
+  --font-body: "IBM Plex Sans Thai Looped", "Noto Sans Thai Looped", "Sarabun", "Leelawadee UI", sans-serif;
+
+  --radius-panel: 20px;
+  --radius-control: 10px;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    /* Thai vowels and tone marks stack above and below the line. */
+    line-height: 1.75;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--color-navy);
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-teal);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}
+
+@layer components {
+  .wrap {
+    width: 100%;
+    max-width: 1120px;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+  @media (min-width: 720px) {
+    .wrap {
+      padding-inline: 32px;
+    }
+  }
+
+  /* Shared text input style for forms */
+  .field-input {
+    width: 100%;
+    min-height: 50px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--color-line);
+    border-radius: var(--radius-control);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font: 400 1.0625rem/1.5 var(--font-body);
+  }
+  .field-input::placeholder {
+    color: #8591a6;
+  }
+  .field-input:focus-visible {
+    outline: none;
+    border-color: var(--color-teal);
+    box-shadow: 0 0 0 3px var(--color-mint);
+  }
+  .field-input[aria-invalid="true"] {
+    border-color: var(--color-error);
+  }
+  textarea.field-input {
+    min-height: 110px;
+    resize: vertical;
+  }
+}
