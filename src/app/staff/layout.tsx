@@ -12,7 +12,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-dvh bg-sky">
       <div className="bg-demo-bg py-2 text-center text-[0.9375rem] font-semibold text-demo">
-        ระบบพนักงานโหมดสาธิต: ยังไม่เชื่อมต่อระบบยืนยันตัวตนและฐานข้อมูลจริง
+        ระบบพนักงานโหมดสาธิต: การเข้าสู่ระบบยังไม่ได้ใช้บัญชี Supabase Auth
       </div>
       <header className="border-b border-line bg-paper">
         <div className="wrap flex items-center justify-between gap-4 py-2">

@@ -24,6 +24,12 @@ export const siteConfig = {
     hours: "",
   },
 
+  /**
+   * Version label of the privacy notice text. Stored with every consent
+   * record, so change it whenever the notice wording changes.
+   */
+  privacyNoticeVersion: "draft-2026-10",
+
   /** Legal entity details for the privacy notice. Fill in before publishing it. */
   legal: {
     companyName: "",

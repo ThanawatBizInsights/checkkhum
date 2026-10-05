@@ -5,7 +5,8 @@ is to get quotation requests. Audience: Thai drivers, mostly on phones.
 
 ## Stack and commands
 
-Next.js 16 (App Router, Turbopack) · React 19 · TypeScript (strict) · Tailwind CSS v4.
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript (strict) · Tailwind CSS v4 ·
+Supabase PostgreSQL (`@supabase/supabase-js`, server-side only) · zod.
 
 ```bash
 npm run dev        # http://localhost:3000
@@ -13,6 +14,8 @@ npm run lint       # eslint . (flat config, eslint-config-next)
 npm run typecheck  # tsc --noEmit
 npm run build
 npm run check      # lint + typecheck + build; run before every commit
+npm run db:start   # local Supabase (Docker); then db:reset, db:test, db:lint
+npm run verify:enquiries  # end-to-end API checks against LOCAL Supabase only
 ```
 
 Next.js 16 differs from older versions: middleware is `src/proxy.ts` (exported `proxy`),
@@ -26,7 +29,10 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 | `src/config/site.ts` | **The only place for contact details** (phone, LINE, QR, email, hours) and legal entity details |
 | `src/lib/contact.ts` | Derived links and placeholders from the config; use these, never format contact details inline |
 | `src/content/products.ts` | Product copy, plans, car tier table |
-| `src/lib/submissions.ts` | Enquiry submission (currently demo-only, see below) |
+| `src/lib/submissions.ts` | Browser side of enquiry submission (posts to `/api/enquiries`; demo fallback) |
+| `src/app/api/enquiries/route.ts`, `src/lib/server/` | Enquiry endpoint: validation, spam checks, rate limits, Supabase calls (server only) |
+| `supabase/migrations/`, `supabase/seed.sql`, `supabase/tests/` | Database schema, fictional seed, pgTAP tests |
+| `docs/database.md` | ER diagram, access matrix, intake flow |
 | `src/lib/staff-session.ts`, `src/app/staff/actions.ts`, `src/proxy.ts` | Demo staff auth |
 | `src/components/` | Reusable UI: `QuoteForm`, `ProductPage`, `ContactChannels`, `ContactBand`, `DemoNotice`, `Button` |
 | `src/app/(site)/` | Public pages, with header/footer/mobile quote bar |
@@ -38,12 +44,26 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 - **Contact details:** never hard-code a phone number, LINE ID, email or address in a page or
   component. Read from `siteConfig` via `src/lib/contact.ts`. Never invent real-looking values;
   empty config values must render the poster placeholders (`[เบอร์โทรศัพท์]`, `[LINE ID]`).
-- **Demo submissions:** until a backend exists, enquiries are saved only in the visitor's
-  browser (`localStorage`) and marked `demo: true`. Every UI that collects or shows them must
-  say so (`DemoNotice` / `DemoBadge`). Do not remove those labels until `DEMO_SUBMISSIONS` is
-  false and a real backend is wired in `submitEnquiry`.
+- **Secrets:** `SUPABASE_SECRET_KEY`, `ENQUIRY_HASH_SALT`, `TURNSTILE_SECRET_KEY` and
+  `STAFF_*` are server-only. Read them only in `src/lib/server/*` (which imports
+  `server-only`) or server routes. Never prefix them with `NEXT_PUBLIC_`, log them, return
+  them in a response, or put real values in `.env.example`.
+- **Database changes:** add a new timestamped migration (`npx supabase migration new <name>`);
+  never edit an applied one. Every new table in `public` must enable RLS, revoke `anon`, and
+  get explicit `to authenticated` policies using the `private.is_staff()/can_write()/is_admin()`
+  helpers; add an audit trigger for customer data. Extend `supabase/tests/` and run
+  `npm run db:test` and `npm run db:lint`. Update `docs/database.md` (ERD + access table).
+- **Public writes go through `/api/enquiries` only.** Don't give `anon` grants, policies or
+  function execute rights, and don't call Supabase from the browser for customer data.
+  Keep the validation, honeypot, timing, rate-limit and idempotency checks in that path.
+- **No personal data in logs**, including names, phone numbers and IPs. Log references and error codes.
+- **Seed data is fictional and local only.** Never run `seed.sql` or
+  `scripts/verify-enquiry-api.mjs` against production.
+- **Demo mode:** without Supabase env vars, enquiries stay in the visitor's browser marked
+  `demo: true`, and every UI that collects or shows them says so (`DemoNotice` / `DemoBadge`).
+  Keep those labels tied to `isDatabaseConfigured()`.
 - **Staff auth is a demo:** a single shared account from env vars and an HMAC-signed httpOnly
-  cookie. Keep the server-side session check in each staff page as well as in `proxy.ts`.
+  cookie. It is not a Supabase Auth session, so it cannot read customer tables (by design). Keep the server-side session check in each staff page as well as in `proxy.ts`.
   Production must refuse login when env vars are missing. Replace with a real identity
   provider before staff handle real customer data.
 - **Privacy notice is a draft:** keep the draft banner and `noindex` until legal review.
