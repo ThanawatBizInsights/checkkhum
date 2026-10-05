@@ -17,6 +17,17 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const status = JSON.parse(execSync("npx supabase status -o json", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
 if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(status.API_URL)) throw new Error("Refusing to run against a non-local Supabase");
 
+// After `supabase db reset` the Data API needs a moment to reconnect.
+async function waitForApi() {
+  for (let i = 0; i < 30; i++) {
+    const r = await fetch(`${status.API_URL}/rest/v1/`, { headers: { apikey: status.PUBLISHABLE_KEY } }).catch(() => null);
+    if (r && r.status < 500) return;
+    await new Promise((res) => setTimeout(res, 1000));
+  }
+  throw new Error("Supabase Data API is not responding");
+}
+await waitForApi();
+
 let failures = 0;
 const check = (cond, msg) => {
   console.log(`${cond ? "PASS" : "FAIL"} ${msg}`);

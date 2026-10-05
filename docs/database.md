@@ -11,6 +11,8 @@ has been applied. Add a new one with `npx supabase migration new <name>`.
 | `20261005060200_audit_and_automation.sql` | Audit-log triggers; automatic renewal tasks |
 | `20261005060300_access_control.sql` | Grants, row level security policies, staff role helpers |
 | `20261005060400_enquiry_intake.sql` | `submit_enquiry` and `consume_rate_limit` (server only) |
+| `20261006090000_crm_workflow.sql` | Pipeline rules, status history, follow-up tasks, author stamping, customer search, conversion report, quotation → policy |
+| `20261006090100_renewal_job.sql` | Scheduled renewal job (pg_cron), staff reminders, job run log; replaces the renewal trigger |
 
 ## Entity relationship diagram
 
@@ -40,6 +42,16 @@ erDiagram
     ENQUIRIES |o--o{ CONSENT_RECORDS : "captured with"
     STAFF_USERS |o--o{ CONSENT_RECORDS : records
     STAFF_USERS |o--o{ AUDIT_LOGS : "acts in"
+    ENQUIRIES ||--o{ ENQUIRY_STATUS_HISTORY : "moves through"
+    STAFF_USERS |o--o{ ENQUIRY_STATUS_HISTORY : changes
+    CUSTOMERS ||--o{ FOLLOW_UP_TASKS : "has"
+    ENQUIRIES |o--o{ FOLLOW_UP_TASKS : about
+    POLICIES |o--o{ FOLLOW_UP_TASKS : about
+    STAFF_USERS |o--o{ FOLLOW_UP_TASKS : "assigned to"
+    STAFF_USERS |o--o{ STAFF_REMINDERS : receives
+    RENEWAL_TASKS |o--o{ STAFF_REMINDERS : "reminds about"
+    FOLLOW_UP_TASKS |o--o{ STAFF_REMINDERS : "reminds about"
+    STAFF_USERS |o--o{ RENEWAL_JOB_RUNS : "runs manually"
 
     AUTH_USERS {
         uuid id PK "Supabase Auth"
@@ -126,9 +138,9 @@ erDiagram
     }
     RENEWAL_TASKS {
         uuid id PK
-        uuid policy_id FK
+        uuid policy_id FK,UK "one per policy"
         uuid assigned_to FK
-        date due_date "end_date - 45 days"
+        date due_date "end_date - 30 days"
         task_status status
         timestamptz completed_at
     }
@@ -154,6 +166,42 @@ erDiagram
         consent_method method
         uuid recorded_by FK
         timestamptz captured_at
+    }
+    ENQUIRY_STATUS_HISTORY {
+        bigint id PK
+        uuid enquiry_id FK
+        enquiry_status from_status
+        enquiry_status to_status
+        uuid changed_by FK
+        timestamptz changed_at
+    }
+    FOLLOW_UP_TASKS {
+        uuid id PK
+        uuid customer_id FK
+        uuid enquiry_id FK
+        uuid policy_id FK
+        text title
+        date due_date
+        uuid assigned_to FK
+        task_status status
+        uuid created_by FK
+    }
+    STAFF_REMINDERS {
+        uuid id PK
+        uuid recipient_id FK "null = team queue"
+        text kind "renewal_task_created | task_due"
+        uuid renewal_task_id FK
+        uuid follow_up_task_id FK
+        text message
+        timestamptz read_at
+    }
+    RENEWAL_JOB_RUNS {
+        bigint id PK
+        date run_date
+        integer tasks_created
+        integer reminders_created
+        text trigger_source "schedule | manual"
+        uuid triggered_by FK
     }
     AUDIT_LOGS {
         bigint id PK
@@ -185,8 +233,17 @@ backs rate limiting and holds only salted hashes.
 - **Audit logs** are written by triggers on every customer table: who
   (`auth.uid()` and database role), what, and for updates only the changed
   columns. They cannot be edited or deleted, even with the secret key.
-- **Renewal tasks** are created automatically 45 days before a policy ends
-  when it becomes `active`.
+- **Renewal tasks** are created only by the daily `pg_cron` job
+  (`private.run_renewal_job`, 06:05 Asia/Bangkok) for active policies ending within
+  90 days: one per policy (unique index), due 30 days before expiry, assigned to the
+  original enquiry's handler. The job also writes internal `staff_reminders` (new task;
+  task due by tomorrow), deduplicated by a unique constraint, and logs each run in
+  `renewal_job_runs`. Customer messaging is a separate, future integration.
+- **Enquiry pipeline** is enforced by trigger: new → contacted → quoted → won/lost
+  ("quoted" needs a sent quotation, "won" an accepted one; won is final; only admins
+  take an enquiry out of spam). Every change is appended to `enquiry_status_history`.
+- **Author stamping:** notes, follow-up tasks and quotations always record the
+  signed-in staff member, whatever the client sends.
 - **Deletion.** Customers with enquiries, policies, consent records or
   activities cannot be deleted (`on delete restrict`). Handle PDPA erasure
   requests as a deliberate admin process (anonymise the record), not a
@@ -209,6 +266,15 @@ each role needs.
 | Staff: agent | `authenticated` | read, add, edit | read | read, add (phone/LINE/paper only) | read | none | none |
 | Staff: admin | `authenticated` | read, add, edit, delete | full | read, add | full | read | none |
 | Website server | Secret key (`service_role`) | bypasses RLS | | | | | execute |
+
+CRM tables added later follow the same model: `follow_up_tasks` like the customer
+tables (read: staff; add/edit: agents and admins; delete: admins);
+`enquiry_status_history` read-only for staff and append-only for everyone;
+`staff_reminders` visible only to their recipient (or to all staff when unassigned),
+with only `read_at` updatable; `renewal_job_runs` admins only. The CRM functions
+`search_customers`, `crm_conversion_report` and `convert_quotation_to_policy` are
+`SECURITY INVOKER` (RLS applies); `run_renewal_job` refuses anyone but admins and the
+scheduler. `anon` can execute none of them.
 
 Visitors create enquiries only through `POST /api/enquiries` on the website
 server, which calls `submit_enquiry` with the secret key. Because `anon` cannot
@@ -253,7 +319,7 @@ sequenceDiagram
 ```bash
 npm run db:start          # local Supabase (Docker)
 npm run db:reset          # apply migrations + fictional seed
-npm run db:test           # pgTAP: 42 access-control and intake assertions
+npm run db:test           # pgTAP: 104 assertions (access control, intake, CRM rules, renewal job)
 npm run db:lint
 npm run build && npm start                          # with .env.local → local Supabase
 BASE_URL=http://localhost:3000 npm run verify:enquiries   # 31 end-to-end API checks

@@ -13,6 +13,9 @@
   --color-ink-soft: #4a5670;
   --color-line: #d5deea;
   --color-error: #b42318;
+  --color-error-bg: #fdecea;
+  --color-warn: #7a4f00;
+  --color-warn-bg: #fff1d6;
   /* LINE's brand green, for the LINE icon only. */
   --color-line-brand: #06c755;
   --color-demo: #8a5a00;

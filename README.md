@@ -41,8 +41,8 @@ npm start
 | `/quote` | Quotation enquiry; `?plan=car-1 \| car-2plus \| car-3plus \| ev \| compulsory \| travel` preselects a plan |
 | `/contact` | Contact channels and callback request |
 | `/privacy` | Privacy notice: **draft**, not indexed |
-| `/staff/login` | Staff login (demo) |
-| `/staff/dashboard` | Staff dashboard (demo, requires login) |
+| `/staff/login` | Staff sign-in (Supabase Auth) |
+| `/staff/…` | Staff CRM: overview, enquiries, customers, policies, tasks, reports, admin, account (see "Staff CRM") |
 | `POST /api/enquiries` | Enquiry endpoint used by the quote and contact forms |
 
 ## Contact details
@@ -107,7 +107,7 @@ BASE_URL=http://localhost:3000 npm run verify:enquiries   # 31 end-to-end checks
 | `SUPABASE_SECRET_KEY` | Supabase dashboard › **Project Settings › API Keys › Secret keys** (create one named e.g. `website-enquiries`; starts with `sb_secret_`) | Hosting provider env settings only, marked secret/sensitive. Server only: never in the browser |
 | `ENQUIRY_HASH_SALT` | Generate: `openssl rand -hex 32` | Hosting provider env settings |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` (optional) | Cloudflare dashboard › **Turnstile › Add widget** | Hosting provider env settings |
-| `STAFF_DEMO_*`, `STAFF_SESSION_SECRET` | You choose; secret via `openssl rand -hex 32` | Hosting provider env settings |
+| `SUPABASE_PUBLISHABLE_KEY` | Supabase dashboard › **Project Settings › API Keys** (starts with `sb_publishable_`) | Hosting provider env settings; used server-side by the staff CRM |
 
 On **Vercel**: Project › **Settings › Environment Variables**; add each for
 Production (and Preview if previews should store enquiries, ideally in a
@@ -143,19 +143,82 @@ keeps it as *ข้อมูลสาธิต* (demo data) in the visitor's own
 on screen; the visitor can copy the summary and paste it into the LINE chat, or call. Setting only one of the two variables is treated as a
 misconfiguration and the endpoint returns an error rather than losing enquiries.
 
-**Staff area.** One shared demo account and a signed, httpOnly session cookie (8 hours).
-Without a database, the dashboard lists the demo enquiries saved in the same browser.
-With a database, it links to the `enquiries` table in the Supabase dashboard, because
-this demo login is not a Supabase Auth session and RLS (correctly) gives it no access.
+Without Supabase configured, the staff CRM is unavailable and its login page says so.
 
-| Environment | Staff login |
+## Staff CRM
+
+`/staff` is the internal CRM. Staff sign in with Supabase Auth (email and password);
+every page and server action runs **as that staff member**, so the database's row
+level security decides what they can see and change. The secret key is used only to
+create staff logins (admins) and by the public enquiry endpoint.
+
+| Area | What staff can do |
 |---|---|
-| Development, no env vars | `demo@checkkhum.local` / `checkkhum-demo` |
-| Any, with env vars | `STAFF_DEMO_EMAIL` / `STAFF_DEMO_PASSWORD`, signed with `STAFF_SESSION_SECRET` (32+ characters) |
-| Production, env vars missing | Login disabled |
+| ภาพรวม | Reminders, my tasks due within 7 days, pipeline counts, policies expiring in 30/60/90 days, newest enquiries |
+| คำขอ | Pipeline ใหม่ → ติดต่อแล้ว → เสนอราคาแล้ว → ปิดการขาย / ไม่สำเร็จ; search; assign; several quotations per enquiry; turn an accepted quotation into a policy; notes, tasks, status history |
+| ลูกค้า | Search by name, phone, LINE ID, plate or reference; full history (enquiries, policies, vehicles, notes, tasks, PDPA consent); add customers, vehicles, existing policies and phone/LINE enquiries |
+| กรมธรรม์ | Active policies ending within 30, 60 or 90 days with their renewal task; expired policies |
+| งาน | Open follow-up and renewal tasks: mine, unassigned, all; assign, start, complete |
+| รายงาน | Enquiry funnel and win rate, premium won, time to quote, by product and by channel, for any date range |
+| ผู้ดูแลระบบ | Admins only: staff accounts and roles, insurers, renewal job runs and "run now", recent audit log |
 
-Next step: move staff sign-in to Supabase Auth so the dashboard can read
-enquiries through the staff RLS policies already in the database.
+**Roles**
+
+| Role | Read | Create / edit | Delete | Staff, insurers, audit log, run job |
+|---|---|---|---|---|
+| ผู้ดูแลระบบ (`admin`) | ✓ | ✓ | ✓ | ✓ |
+| เจ้าหน้าที่ (`agent`) | ✓ | ✓ | | |
+| ดูอย่างเดียว (`viewer`) | ✓ | | | |
+
+Users who are not in `staff_users`, or are deactivated, cannot sign in to the CRM and
+can read nothing through the API. Admins cannot demote or deactivate themselves.
+
+The enquiry pipeline is enforced in the database: an enquiry can only become
+"เสนอราคาแล้ว" after a quotation is sent, and "ปิดการขาย" only with an accepted
+quotation. Notes, tasks and quotations are always recorded in the name of the signed-in
+staff member.
+
+**Renewal tasks and reminders.** A `pg_cron` job runs daily at 06:05 Bangkok time
+(`checkkhum-renewal-job`). For every active policy ending within 90 days it creates one
+renewal task (due 30 days before expiry, assigned to whoever handled the original
+enquiry), and it creates internal reminders for new renewal tasks and for any task due
+by tomorrow. A unique index allows one renewal task per policy and every insert uses
+`ON CONFLICT DO NOTHING`, so repeated runs never duplicate tasks or reminders. Admins
+can also run it from ผู้ดูแลระบบ. Customer messaging (LINE, SMS) is not part of this
+job; it will be a separate integration reading the same tasks.
+
+**First admin.** After applying the migrations to your project:
+
+1. Supabase dashboard › **Authentication › Users › Add user**: enter the email and a
+   strong password, tick auto-confirm.
+2. Supabase dashboard › **SQL Editor**:
+   ```sql
+   insert into public.staff_users (id, email, full_name, role)
+   select id, email, 'ชื่อผู้ดูแลระบบ', 'admin' from auth.users where email = 'you@example.com';
+   ```
+3. Sign in at `/staff/login`. Add other staff from ผู้ดูแลระบบ › เพิ่มพนักงาน.
+
+Keep **Authentication › Sign In / Providers › Allow new users to sign up** off: staff are
+added by admins only.
+
+**Local logins** (fictional seed, password `checkkhum-local-only`):
+`admin@checkkhum.example`, `agent@checkkhum.example`, `viewer@checkkhum.example`,
+plus `former@` (deactivated) and `outsider@` (not staff) for testing refusals.
+
+**Checks**
+
+```bash
+npm run db:test                                   # 104 database tests (both suites)
+npx supabase db reset && npm run build && npm start
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:crm   # 75 end-to-end checks
+```
+
+`verify:crm` signs in as each role and confirms unauthorized access is blocked at three
+layers: pages (redirects, "no access"), server actions (replayed with a lower-privileged
+session) and the database API (real staff tokens against RLS). It also walks through the
+enquiry → quotation → policy flow, the renewal job and staff management.
+
+After changing the schema, run `npm run db:types` to refresh `src/lib/database.types.ts`.
 
 ## Before launch
 
@@ -164,7 +227,7 @@ enquiries through the staff RLS policies already in the database.
   and `robots: noindex` in `src/app/(site)/privacy/page.tsx`.
 - Apply the migrations to your Supabase project and set the environment variables
   (see "Enquiry database").
-- Move staff sign-in to Supabase Auth (see Demo mode).
+- Create the first admin account (see "Staff CRM") and confirm sign-ups are disabled.
 - Replace `public/images/checkkhum-logo.png` and `hero-car.webp` with the original
   high-resolution artwork; the current files are cropped from the 667px-wide approved poster.
 

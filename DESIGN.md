@@ -104,6 +104,28 @@ product page, desktop                      product page, mobile
 - **Critique:** the reference number wrapped mid-code in the confirmation note on
   phones; it is now kept on one line.
 
+## Staff CRM (/staff)
+
+- **Job:** a daily work tool for a small brokerage team, mostly on desktop, sometimes on a
+  phone between calls. Denser than the public site, same tokens and Thai type.
+- **Layout:** navy-deep sidebar (logo mark, name, role, menu with counts) on desktop; on
+  phones it becomes a header with a horizontally scrolling tab row. Content sits on
+  white "sheets" over the sky background, max 1200px.
+- **The one memorable element:** the pipeline strip, ใหม่ → ติดต่อแล้ว → เสนอราคาแล้ว →
+  ปิดการขาย / ไม่สำเร็จ. With counts it is the enquiry list's filter; on an enquiry it shows
+  how far the deal has got. Below it, only the moves the database allows are offered.
+- **Lists, not card grids:** rows with hairline dividers and tables for scanning; tables
+  scroll inside their sheet on phones, with the deciding column (e.g. expiry date) first.
+- **Status colour:** new = navy outline, contacted = sky, quoted = mint/teal outline,
+  won = solid teal, lost/spam = grey. Due dates: red overdue, amber today/tomorrow.
+  Warning and error colours are tokens (`--color-warn*`, `--color-error*`).
+- **Report chart:** the funnel is one series, so one hue (navy), bars rounded only at the
+  data end, exact values printed beside each bar (dataviz skill).
+- **Critique fixes:** sidebar background now runs the full page height; meta lines use
+  commas instead of "·"; reminder dates use the Buddhist year like the rest of the UI;
+  "add quotation" is a permanent section (it collapsed and hid its success message);
+  wide tables no longer push the page sideways on phones (`min-w-0` on sheets).
+
 ## Review against the brief
 
 - *Generic default caught:* a four-up grid of identical rounded product cards with soft

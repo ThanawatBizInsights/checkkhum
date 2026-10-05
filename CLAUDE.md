@@ -33,7 +33,10 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 | `src/app/api/enquiries/route.ts`, `src/lib/server/` | Enquiry endpoint: validation, spam checks, rate limits, Supabase calls (server only) |
 | `supabase/migrations/`, `supabase/seed.sql`, `supabase/tests/` | Database schema, fictional seed, pgTAP tests |
 | `docs/database.md` | ER diagram, access matrix, intake flow |
-| `src/lib/staff-session.ts`, `src/app/staff/actions.ts`, `src/proxy.ts` | Demo staff auth |
+| `src/app/staff/(crm)/`, `src/app/staff/_actions/` | Staff CRM pages and server actions |
+| `src/lib/server/staff-auth.ts`, `src/lib/server/supabase-user.ts`, `src/proxy.ts` | Staff sign-in (Supabase Auth), role checks, session refresh |
+| `src/lib/server/crm/` | Action helper (role check + zod + DB error mapping) and shared queries |
+| `src/lib/database.types.ts` | Generated DB types (`npm run db:types`) |
 | `src/components/` | Reusable UI: `QuoteForm`, `ProductPage`, `ContactChannels`, `ContactBand`, `DemoNotice`, `Button` |
 | `src/app/(site)/` | Public pages, with header/footer/mobile quote bar |
 | `src/app/staff/` | Staff login and dashboard, separate layout, `noindex` |
@@ -49,8 +52,8 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
   opening in a new tab with `rel="noopener noreferrer"`. LINE links never carry form
   details; enquiries are always saved through `/api/enquiries`. Use LINE's official
   "เพิ่มเพื่อน" image unmodified (plain `<img>` from `scdn.line-apps.com`, height 36).
-- **Secrets:** `SUPABASE_SECRET_KEY`, `ENQUIRY_HASH_SALT`, `TURNSTILE_SECRET_KEY` and
-  `STAFF_*` are server-only. Read them only in `src/lib/server/*` (which imports
+- **Secrets:** `SUPABASE_SECRET_KEY`, `ENQUIRY_HASH_SALT` and `TURNSTILE_SECRET_KEY` are
+  server-only. (`SUPABASE_PUBLISHABLE_KEY` is not secret, but is also only used server-side.) Read them only in `src/lib/server/*` (which imports
   `server-only`) or server routes. Never prefix them with `NEXT_PUBLIC_`, log them, return
   them in a response, or put real values in `.env.example`.
 - **Database changes:** add a new timestamped migration (`npx supabase migration new <name>`);
@@ -67,10 +70,21 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 - **Demo mode:** without Supabase env vars, enquiries stay in the visitor's browser marked
   `demo: true`, and every UI that collects or shows them says so (`DemoNotice` / `DemoBadge`).
   Keep those labels tied to `isDatabaseConfigured()`.
-- **Staff auth is a demo:** a single shared account from env vars and an HMAC-signed httpOnly
-  cookie. It is not a Supabase Auth session, so it cannot read customer tables (by design). Keep the server-side session check in each staff page as well as in `proxy.ts`.
-  Production must refuse login when env vars are missing. Replace with a real identity
-  provider before staff handle real customer data.
+- **Staff CRM permissions:** CRM code reads and writes only through `requireStaff()` /
+  `runAction(minRole, …)` and the staff member's own client (`staff.db`), so RLS applies.
+  Never use the secret key in CRM code except for Auth admin calls that create logins,
+  and only after `runAction("admin", …)`. Every new action declares its minimum role
+  (`viewer` < `agent` < `admin`), validates with zod, and uses `check(…, { expectRows: true })`
+  on updates so an RLS-filtered update is reported, not silently "saved". Every page calls
+  `requireStaff()` itself; layouts and `proxy.ts` are not the only gate.
+- **Workflow rules live in the database** (`private.enforce_enquiry_status`, author
+  stamping, `convert_quotation_to_policy`). Mirror them in the UI (`nextStatuses`) but
+  never rely on the UI alone.
+- **Renewal tasks come only from the scheduled job** (`private.run_renewal_job`, pg_cron).
+  Keep it idempotent (unique index + `on conflict do nothing`). Customer messaging is a
+  separate integration; don't add it to the job.
+- **Test permissions with every CRM change:** extend `supabase/tests/crm.test.sql` and
+  `scripts/verify-crm.mjs` (refusals at page, action and API level).
 - **Privacy notice is a draft:** keep the draft banner and `noindex` until legal review.
 - **Brand:** use the logo files in `public/images/` as they are (no recolouring or redrawing).
   Colours come from the logo: navy `#0A2259`, teal `#0B9C84`. Use the Tailwind tokens in

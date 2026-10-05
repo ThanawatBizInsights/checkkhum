@@ -73,7 +73,7 @@ reset role;
 -- Viewer: read-only
 -- ===========================================================================
 select pg_temp.act_as('authenticated', '11111111-1111-4111-8111-111111111103');
-select is((select count(*)::int from public.customers), 3, 'viewer reads customers');
+select is((select count(*)::int from public.customers), 6, 'viewer reads customers');
 select is((select count(*)::int from public.enquiries), 3, 'viewer reads enquiries');
 select throws_ok(
   $$insert into public.customers (full_name, phone) values ('x', '0811111113')$$,
@@ -178,9 +178,9 @@ select is((select full_name from public.customers where phone = '0800000101'), '
   'public submission does not rename an existing customer');
 reset role;
 
--- Seeded active policy got its renewal task from the trigger.
+-- The seed runs the renewal job once; the active policy expiring in 65 days has its task.
 select is((select count(*)::int from public.renewal_tasks where policy_id = '77777777-7777-4777-8777-777777777701'), 1,
-  'activating a policy creates a renewal task');
+  'renewal job created a task for the policy expiring within 90 days');
 
 select * from finish();
 rollback;

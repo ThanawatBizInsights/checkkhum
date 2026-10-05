@@ -11,7 +11,6 @@
  */
 
 const STORAGE_KEY = "checkkhum.demoSubmissions.v1";
-const CHANGE_EVENT = "checkkhum:demo-submissions";
 
 export type EnquiryType = "quote" | "contact";
 
@@ -54,43 +53,18 @@ export type SubmitOutcome =
   | { kind: "invalid"; fieldErrors: Record<string, string>; message: string }
   | { kind: "error"; message: string };
 
-/** Raw stored JSON; a stable string, so it works as a useSyncExternalStore snapshot. */
-export function readDemoSubmissionsRaw(): string {
+function readAll(): Submission[] {
   try {
-    return window.localStorage.getItem(STORAGE_KEY) ?? "[]";
-  } catch {
-    return "[]";
-  }
-}
-
-export function parseSubmissions(raw: string): Submission[] {
-  try {
-    const parsed: unknown = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]");
     return Array.isArray(parsed) ? (parsed as Submission[]) : [];
   } catch {
     return [];
   }
 }
 
-/** Notifies on changes from this tab and from other tabs. */
-export function subscribeDemoSubmissions(onChange: () => void): () => void {
-  const onStorage = (e: StorageEvent) => e.key === STORAGE_KEY && onChange();
-  window.addEventListener("storage", onStorage);
-  window.addEventListener(CHANGE_EVENT, onChange);
-  return () => {
-    window.removeEventListener("storage", onStorage);
-    window.removeEventListener(CHANGE_EVENT, onChange);
-  };
-}
-
-function readAll(): Submission[] {
-  return parseSubmissions(readDemoSubmissionsRaw());
-}
-
 function writeAll(items: Submission[]): boolean {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    window.dispatchEvent(new Event(CHANGE_EVENT));
     return true;
   } catch {
     return false;
@@ -149,15 +123,6 @@ export async function submitEnquiry(input: EnquiryInput, meta: SubmissionMeta): 
     return { kind: "invalid", fieldErrors: body.fieldErrors, message: body.message ?? "ข้อมูลบางช่องยังไม่ถูกต้อง" };
   }
   return { kind: "error", message: (!body.ok && body.message) || NETWORK_ERROR };
-}
-
-export function clearDemoSubmissions(): void {
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
-    window.dispatchEvent(new Event(CHANGE_EVENT));
-  } catch {
-    /* nothing stored */
-  }
 }
 
 export function normalizeThaiMobile(value: string): string {

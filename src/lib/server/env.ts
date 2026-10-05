@@ -40,3 +40,10 @@ export function supabaseProjectRef(): string | null {
   const match = url?.match(/^https:\/\/([a-z0-9]{20})\.supabase\.co/);
   return match ? match[1] : null;
 }
+
+/** Supabase Auth for the staff CRM (server-side only; the browser never gets these). */
+export function getAuthConfig(): { supabaseUrl: string; publishableKey: string } | null {
+  const supabaseUrl = process.env.SUPABASE_URL?.trim();
+  const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
+  return supabaseUrl && publishableKey ? { supabaseUrl, publishableKey } : null;
+}

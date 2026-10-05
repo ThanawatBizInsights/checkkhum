@@ -14,7 +14,9 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:lint": "supabase db lint --level warning",
-    "verify:enquiries": "node scripts/verify-enquiry-api.mjs"
+    "verify:enquiries": "node scripts/verify-enquiry-api.mjs",
+    "db:types": "supabase gen types typescript --local --schema public > src/lib/database.types.ts",
+    "verify:crm": "node scripts/verify-crm.mjs"
   },
   "engines": {
     "node": ">=20.9.0"
@@ -22,6 +24,7 @@
   "dependencies": {
     "@fontsource/ibm-plex-sans-thai-looped": "^5.3.0",
     "@fontsource/prompt": "^5.3.0",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "next": "^16.3.8",
     "react": "^19.3.0",
