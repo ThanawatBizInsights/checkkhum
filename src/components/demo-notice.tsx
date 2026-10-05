@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 /** Marks anything that runs on demo data. Keep it visible until the backend is live. */
 export function DemoBadge() {
   return (
-    <span className="inline-flex items-center rounded-full bg-demo-bg px-3 py-0.5 text-sm font-semibold text-demo">
+    <span className="inline-flex items-center rounded-full bg-demo-bg px-3 py-0.5 text-[0.9375rem] font-semibold text-demo">
       ข้อมูลสาธิต
     </span>
   );

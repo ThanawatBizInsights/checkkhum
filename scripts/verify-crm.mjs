@@ -318,6 +318,16 @@ const agentCookies = await agent.ctx.cookies();
   msg = await submitAndRead(p, self.locator('button:has-text("บันทึก")'), self);
   ok(msg.includes("ของตัวเองไม่ได้"), `admin cannot demote themselves ("${msg}")`);
   ok(sql("select role from public.staff_users where email = 'admin@checkkhum.example'") === "admin", "admin role unchanged");
+
+  // Admin sets a temporary password for a staff member who forgot theirs.
+  await p.reload();
+  const vrow = p.locator('[data-staff="viewer@checkkhum.example"]');
+  await vrow.locator("summary:has-text('ตั้งรหัสผ่านชั่วคราวใหม่')").click();
+  await vrow.locator('input[name="temp_password"]').fill("viewer-temp-pass-2026");
+  msg = await submitAndRead(p, vrow.locator('button:has-text("ตั้งรหัสผ่าน")'), vrow);
+  ok(msg.includes("ตั้งรหัสผ่านชั่วคราวแล้ว"), "admin sets a temporary password");
+  ok(!(await token("viewer@checkkhum.example")), "old password no longer works");
+  ok(!!(await token("viewer@checkkhum.example", "viewer-temp-pass-2026")), "temporary password works");
 }
 
 // ===== 8. Website enquiry reaches the CRM; reminders; reports ======================

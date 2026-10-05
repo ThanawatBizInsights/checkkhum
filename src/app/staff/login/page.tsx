@@ -59,7 +59,7 @@ export default async function StaffLoginPage({
                   <input id="password" name="password" type="password" autoComplete="current-password" required className="field-input" />
                 </div>
               </ActionForm>
-              <p className="mt-4 text-[0.9375rem] text-ink-soft">ลืมรหัสผ่าน ติดต่อผู้ดูแลระบบเพื่อตั้งรหัสใหม่</p>
+              <p className="mt-4 text-[0.9375rem] text-ink-soft">ลืมรหัสผ่าน ติดต่อผู้ดูแลระบบเพื่อตั้งรหัสผ่านชั่วคราวใหม่</p>
             </>
           )}
         </div>

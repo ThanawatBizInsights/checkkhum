@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { authCookieOptions } from "@/lib/server/auth-cookies";
 
 /**
  * Staff area gate. Refreshes the Supabase Auth session cookie and sends
@@ -18,6 +19,7 @@ export async function proxy(request: NextRequest) {
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
+    cookieOptions: authCookieOptions,
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (cookiesToSet, headers) => {
@@ -30,7 +32,11 @@ export async function proxy(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getUser();
-  if (!data.user && !isLogin) {
+  // Server-action POSTs are not redirected: the action's own requireRole()
+  // refuses them and shows "please sign in again" in the form, instead of
+  // the click silently doing nothing after an expired session.
+  const isServerAction = request.method === "POST" && request.headers.has("next-action");
+  if (!data.user && !isLogin && !isServerAction) {
     const login = new URL("/staff/login", request.url);
     if (request.nextUrl.pathname !== "/staff") login.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(login);

@@ -77,7 +77,7 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
                         <Link href={`/staff/policies/${p.id}`} className="font-semibold text-navy hover:underline">
                           {p.policy_number}
                         </Link>
-                        <span className="block text-sm text-ink-soft">
+                        <span className="block text-[0.9375rem] text-ink-soft">
                           {productLabels[p.product]}, {p.insurers?.name_th}
                         </span>
                       </td>

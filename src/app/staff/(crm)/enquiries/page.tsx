@@ -83,7 +83,7 @@ export default async function EnquiriesPage({
                 key={s}
                 href={href(s)}
                 aria-current={status === s ? "page" : undefined}
-                className={`rounded-full px-3 py-1 font-semibold ${status === s ? "bg-navy text-paper" : "bg-sky text-navy"}`}
+                className={`inline-flex min-h-11 items-center rounded-full px-4 font-semibold ${status === s ? "bg-navy text-paper" : "bg-sky text-navy"}`}
               >
                 {s === "all" ? "ทุกสถานะ" : enquiryStatusLabels.spam}
               </Link>
@@ -111,7 +111,7 @@ export default async function EnquiriesPage({
                         <Link href={`/staff/enquiries/${e.id}`} className="font-semibold text-navy hover:underline">
                           {e.contact_name}
                         </Link>
-                        <span className="block text-sm text-ink-soft">
+                        <span className="block text-[0.9375rem] text-ink-soft">
                           {e.reference}, {formatPhone(e.contact_phone)}
                         </span>
                       </td>
