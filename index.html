@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>เช็กคุ้ม | ประกันรถยนต์ เลือกให้คุ้ม เหมาะกับคุณ</title>
+  <meta name="description" content="เช็กคุ้ม ช่วยเปรียบเทียบแผนประกันรถยนต์ ชั้น 1, 2+, 3+, ประกันรถ EV, พ.ร.บ. และประกันเดินทาง ก่อนตัดสินใจ ขอใบเสนอราคาได้ทันที">
+  <meta name="theme-color" content="#0A2259">
+  <link rel="icon" type="image/png" href="assets/checkkhum-mark.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600&family=Prompt:wght@600;700&display=swap">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#quote">ข้ามไปที่ฟอร์มขอใบเสนอราคา</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#top" aria-label="เช็กคุ้ม หน้าแรก">
+        <img src="assets/checkkhum-logo.png" width="282" height="299" alt="เช็กคุ้ม Car &amp; Travel Insurance">
+      </a>
+      <nav class="header-actions" aria-label="ติดต่อเรา">
+        <a class="header-link" data-contact="phone-link" href="#contact">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>
+          <span>โทร</span>
+        </a>
+        <a class="header-link" data-contact="line-link" href="#contact">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.07.8.2.9.5.1.3.07.7.03 1l-.14.86c-.04.26-.2 1 .88.55 1.1-.46 5.8-3.4 7.9-5.9C21.3 14.3 22 12.7 22 11c0-4.4-4.5-8-10-8z"/></svg>
+          <span>LINE</span>
+        </a>
+        <a class="button button-small" href="#quote">ขอใบเสนอราคา</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <h1>ประกันรถยนต์<br><span class="h1-line">เลือกให้คุ้ม เหมาะกับคุณ</span></h1>
+          <p class="lede">ช่วยเปรียบเทียบแผน ก่อนตัดสินใจ บอกรุ่นรถกับแผนที่สนใจ เราจะส่งใบเสนอราคาจากหลายบริษัทให้ดูเทียบกัน</p>
+        </div>
+
+        <figure class="hero-visual">
+          <img src="assets/hero-car.webp" width="667" height="390" alt="รถยนต์เก๋งสีเงินบนถนน มีโล่สีน้ำเงินเขียวด้านหลัง">
+        </figure>
+
+        <section class="quote" id="quote" aria-labelledby="quote-title">
+          <h2 id="quote-title">ขอใบเสนอราคา</h2>
+          <p class="quote-intro">กรอกข้อมูลสั้น ๆ แล้วส่งให้เราทาง LINE หรือโทรคุยได้เลย ไม่มีค่าใช้จ่าย</p>
+
+          <form id="quote-form" novalidate>
+            <fieldset class="field">
+              <legend>สนใจประกันแบบไหน</legend>
+              <div class="chips">
+                <label class="chip"><input type="radio" name="plan" value="ประกันรถยนต์ ชั้น 1" checked><span>ชั้น 1</span></label>
+                <label class="chip"><input type="radio" name="plan" value="ประกันรถยนต์ ชั้น 2+"><span>ชั้น 2+</span></label>
+                <label class="chip"><input type="radio" name="plan" value="ประกันรถยนต์ ชั้น 3+"><span>ชั้น 3+</span></label>
+                <label class="chip"><input type="radio" name="plan" value="ประกันรถยนต์ EV"><span>รถ EV</span></label>
+                <label class="chip"><input type="radio" name="plan" value="พ.ร.บ. รถยนต์"><span>พ.ร.บ.</span></label>
+                <label class="chip"><input type="radio" name="plan" value="ประกันเดินทาง" data-kind="travel"><span>ประกันเดินทาง</span></label>
+              </div>
+            </fieldset>
+
+            <div class="field-group" data-for="car">
+              <div class="field">
+                <label for="car-model">ยี่ห้อและรุ่นรถ</label>
+                <input id="car-model" name="carModel" type="text" autocomplete="off" placeholder="เช่น Honda City">
+              </div>
+              <div class="field field-narrow">
+                <label for="car-year">ปีรถ (ค.ศ.)</label>
+                <input id="car-year" name="carYear" type="text" inputmode="numeric" maxlength="4" placeholder="เช่น 2022">
+              </div>
+            </div>
+
+            <div class="field-group" data-for="travel" hidden>
+              <div class="field">
+                <label for="destination">ประเทศปลายทาง</label>
+                <input id="destination" name="destination" type="text" autocomplete="off" placeholder="เช่น ญี่ปุ่น">
+              </div>
+              <div class="field field-narrow">
+                <label for="trip-days">จำนวนวัน</label>
+                <input id="trip-days" name="tripDays" type="text" inputmode="numeric" maxlength="3" placeholder="เช่น 7">
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="name">ชื่อที่ให้เราเรียก</label>
+              <input id="name" name="name" type="text" autocomplete="given-name" required aria-describedby="name-error">
+              <p class="field-error" id="name-error" hidden>กรอกชื่อเพื่อให้เราติดต่อกลับได้</p>
+            </div>
+
+            <div class="field">
+              <label for="phone">เบอร์โทรศัพท์มือถือ</label>
+              <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="08x-xxx-xxxx" aria-describedby="phone-error">
+              <p class="field-error" id="phone-error" hidden>กรอกเบอร์มือถือ 10 หลักที่ขึ้นต้นด้วย 0</p>
+            </div>
+
+            <button class="button button-block" type="submit">ขอใบเสนอราคา</button>
+            <p class="form-note">เราใช้ข้อมูลนี้เพื่อจัดทำใบเสนอราคาและติดต่อกลับเท่านั้น</p>
+          </form>
+
+          <div class="quote-ready" id="quote-ready" hidden tabindex="-1">
+            <h3>สรุปคำขอของคุณพร้อมส่งแล้ว</h3>
+            <pre class="quote-summary" id="quote-summary"></pre>
+            <div class="ready-actions">
+              <a class="button button-block" id="send-line" href="#contact">ส่งทาง LINE</a>
+              <button class="button button-quiet button-block" type="button" id="copy-summary">คัดลอกข้อความ</button>
+            </div>
+            <p class="form-note" id="copy-status" role="status"></p>
+            <button class="text-button" type="button" id="edit-request">แก้ไขข้อมูล</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="products" aria-labelledby="products-title">
+      <div class="wrap">
+        <h2 id="products-title">ประกันที่เราช่วยเปรียบเทียบให้</h2>
+
+        <div class="product-lead">
+          <svg class="product-icon" aria-hidden="true" viewBox="0 0 64 64">
+            <path class="i-navy" d="M14 26l4.5-10.5A5 5 0 0 1 23.1 12.5h17.8a5 5 0 0 1 4.6 3L50 26h2a4 4 0 0 1 4 4v6a2 2 0 0 1-2 2h-2v4a3 3 0 0 1-3 3h-3a3 3 0 0 1-3-3v-4H21v4a3 3 0 0 1-3 3h-3a3 3 0 0 1-3-3v-4h-2a2 2 0 0 1-2-2v-6a4 4 0 0 1 4-4zm6 0h24l-3.3-8.2a1 1 0 0 0-.9-.6H24.2a1 1 0 0 0-.9.6zM16 33a2.5 2.5 0 1 0 0 .1zm32 0a2.5 2.5 0 1 0 0 .1z"/>
+            <path class="i-teal" d="M47 36l9 3.5v6.2c0 6-3.9 10-9 12.3-5.1-2.3-9-6.3-9-12.3v-6.2z"/>
+            <path class="i-white" d="M43.3 46.4l2.6 2.6 5-5.2" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div>
+            <h3>ประกันรถยนต์</h3>
+            <p>เทียบความคุ้มครองและเบี้ยของแต่ละชั้นให้เห็นชัด ว่าแผนไหนเหมาะกับอายุรถและการใช้งานของคุณ</p>
+            <ul class="tiers" aria-label="ชั้นประกันรถยนต์">
+              <li>ชั้น 1</li><li>ชั้น 2+</li><li>ชั้น 3+</li>
+            </ul>
+          </div>
+        </div>
+
+        <ul class="product-list">
+          <li>
+            <svg class="product-icon" aria-hidden="true" viewBox="0 0 64 64">
+              <path class="i-navy" d="M12 12a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v42h2v4H10v-4h2zm5 2v12h14V14z"/>
+              <path class="i-white" d="M25 33l-4 7h4l-2 6 6-8h-4l2-5z"/>
+              <path class="i-navy" d="M40 22h2v8a2 2 0 0 0 4 0v-8h2v8a4 4 0 0 1-3 3.9V44a2 2 0 0 1-4 0v-4h2v4h0V33.9A4 4 0 0 1 40 30z"/>
+              <path class="i-teal" d="M58 26c-9 0-13 5-13 11 0 2 .6 3.6 1.6 5 3-5 6-7.4 9.4-9-3 2.3-5.5 5.6-7.3 10 6.6 1.2 10.3-5 9.3-17z"/>
+            </svg>
+            <div>
+              <h3>ประกันรถยนต์ EV</h3>
+              <p>แผนที่ครอบคลุมแบตเตอรี่และอุปกรณ์ชาร์จ สำหรับรถไฟฟ้าโดยเฉพาะ</p>
+            </div>
+          </li>
+          <li>
+            <svg class="product-icon" aria-hidden="true" viewBox="0 0 64 64">
+              <path class="i-navy" d="M14 8h26l10 10v16h-4V20h-8V12H18v40h18v4H14z"/>
+              <path class="i-navy" d="M23 26h18v4H23zm0 8h14v4H23zm0 8h10v4H23z"/>
+              <path class="i-teal" d="M49 36l9 3.5v6.2c0 6-3.9 10-9 12.3-5.1-2.3-9-6.3-9-12.3v-6.2z"/>
+              <path class="i-white" d="M45.3 46.4l2.6 2.6 5-5.2" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>
+              <h3>พ.ร.บ. รถยนต์</h3>
+              <p>ต่อ พ.ร.บ. พร้อมประกันภาคสมัครใจ หรือต่อแยกก็ได้</p>
+            </div>
+          </li>
+          <li>
+            <svg class="product-icon" aria-hidden="true" viewBox="0 0 64 64">
+              <circle cx="28" cy="36" r="17" fill="none" stroke="var(--navy)" stroke-width="4"/>
+              <path d="M11 36h34M28 19c-6 5-6 29 0 34M28 19c6 5 6 29 0 34" fill="none" stroke="var(--navy)" stroke-width="3"/>
+              <path class="i-teal" d="M38 20l20-10c2-1 4 1 3 3L51 31l-4-1 2-8-6 2-2 4-3-1 1-5z"/>
+            </svg>
+            <div>
+              <h3>ประกันเดินทาง</h3>
+              <p>คุ้มครองค่ารักษาและเหตุไม่คาดฝันระหว่างเดินทาง ทั้งในและต่างประเทศ</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="help" aria-labelledby="help-title">
+      <div class="wrap">
+        <h2 id="help-title">เราช่วยอะไรคุณได้บ้าง</h2>
+        <div class="help-grid">
+          <div>
+            <h3>เช็กความคุ้มครอง</h3>
+            <p>อ่านเงื่อนไขกรมธรรม์ให้ แล้วสรุปเป็นภาษาที่เข้าใจง่าย ว่าคุ้มครองอะไรและไม่คุ้มครองอะไร</p>
+          </div>
+          <div>
+            <h3>เปรียบเทียบเบี้ย</h3>
+            <p>วางราคาและทุนประกันจากหลายบริษัทไว้ข้างกัน เพื่อให้คุณเลือกแผนที่คุ้มที่สุดสำหรับรถของคุณ</p>
+          </div>
+          <div>
+            <h3>ช่วยประสานงาน</h3>
+            <p>ตั้งแต่ทำกรมธรรม์ ต่ออายุ ไปจนถึงตอนเคลม เราช่วยติดต่อบริษัทประกันให้</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact" id="contact" aria-labelledby="contact-title">
+      <div class="wrap contact-grid">
+        <div>
+          <h2 id="contact-title">สอบถาม หรือขอใบเสนอราคา</h2>
+          <ul class="contact-list">
+            <li>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>
+              <span class="contact-label">โทร</span>
+              <a class="contact-value" data-contact="phone" href="#contact">[เบอร์โทรศัพท์]</a>
+            </li>
+            <li>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.07.8.2.9.5.1.3.07.7.03 1l-.14.86c-.04.26-.2 1 .88.55 1.1-.46 5.8-3.4 7.9-5.9C21.3 14.3 22 12.7 22 11c0-4.4-4.5-8-10-8z"/></svg>
+              <span class="contact-label">LINE</span>
+              <a class="contact-value" data-contact="line" href="#contact">[LINE ID]</a>
+            </li>
+          </ul>
+        </div>
+        <figure class="qr">
+          <div class="qr-frame" data-contact="qr"></div>
+          <figcaption>สแกนเพื่อเพิ่มเพื่อนทาง LINE</figcaption>
+        </figure>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>เช็กคุ้ม Car &amp; Travel Insurance</p>
+    </div>
+  </footer>
+
+  <a class="mobile-cta button" href="#quote">ขอใบเสนอราคา</a>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
