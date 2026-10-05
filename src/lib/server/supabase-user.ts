@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { cookies } from "next/headers";
+import { authCookieOptions } from "./auth-cookies";
 import { getAuthConfig } from "./env";
 
 /**
@@ -15,6 +16,7 @@ export async function createUserClient(): Promise<SupabaseClient<Database> | nul
   if (!config) return null;
   const cookieStore = await cookies();
   return createServerClient<Database>(config.supabaseUrl, config.publishableKey, {
+    cookieOptions: authCookieOptions,
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (cookiesToSet) => {

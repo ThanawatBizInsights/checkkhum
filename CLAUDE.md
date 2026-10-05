@@ -16,6 +16,8 @@ npm run build
 npm run check      # lint + typecheck + build; run before every commit
 npm run db:start   # local Supabase (Docker); then db:reset, db:test, db:lint
 npm run verify:enquiries  # end-to-end API checks against LOCAL Supabase only
+npm run verify:crm        # CRM permissions + flows (LOCAL only, after db:reset)
+npm run audit             # launch audit: mobile, Thai text, links, anon access, secrets, headers
 ```
 
 Next.js 16 differs from older versions: middleware is `src/proxy.ts` (exported `proxy`),

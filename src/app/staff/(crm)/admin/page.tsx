@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { addInsurer, createStaffUser, runRenewalJobNow, setInsurerActive, updateStaffUser } from "@/app/staff/_actions/admin";
+import { addInsurer, createStaffUser, resetStaffPassword, runRenewalJobNow, setInsurerActive, updateStaffUser } from "@/app/staff/_actions/admin";
 import { ActionForm } from "@/components/staff/action-form";
 import { AccessDenied, Empty, Field, PageTitle, Pill, Select, Sheet } from "@/components/staff/ui";
 import { formatDate, formatDateTime, roleLabels } from "@/lib/crm-labels";
@@ -72,6 +72,15 @@ export default async function AdminPage() {
                     ใช้งานได้
                   </label>
                 </ActionForm>
+                <details className="md:col-span-2">
+                  <summary className="inline-flex min-h-11 cursor-pointer items-center font-semibold text-teal-ink">ตั้งรหัสผ่านชั่วคราวใหม่</summary>
+                  <ActionForm action={resetStaffPassword} submitLabel="ตั้งรหัสผ่าน" variant="outline" resetOnSuccess className="mt-2 flex flex-wrap items-end gap-2">
+                    <input type="hidden" name="id" value={s.id} />
+                    <Field label={`รหัสผ่านชั่วคราวของ ${s.full_name}`} htmlFor={`pw-${s.id}`}>
+                      <input id={`pw-${s.id}`} name="temp_password" type="password" required minLength={12} autoComplete="new-password" className="field-input" />
+                    </Field>
+                  </ActionForm>
+                </details>
               </li>
             ))}
           </ul>
@@ -126,7 +135,7 @@ export default async function AdminPage() {
                 <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span>
                     <span className="font-semibold text-navy">{i.name_th}</span>{" "}
-                    <span className="text-sm text-ink-soft">({i.code})</span> {!i.is_active && <Pill tone="bad">ปิดใช้</Pill>}
+                    <span className="text-[0.9375rem] text-ink-soft">({i.code})</span> {!i.is_active && <Pill tone="bad">ปิดใช้</Pill>}
                   </span>
                   <ActionForm action={setInsurerActive} submitLabel={i.is_active ? "ปิดใช้" : "เปิดใช้"} variant="outline" inline>
                     <input type="hidden" name="id" value={i.id} />

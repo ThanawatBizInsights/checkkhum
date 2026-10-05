@@ -20,7 +20,7 @@ export function ActivityList({ activities }: { activities: Activity[] }) {
       {activities.map((a) => (
         <li key={a.id} className="relative">
           <span aria-hidden="true" className="absolute -left-[1.4rem] top-2 size-2.5 rounded-full bg-teal" />
-          <p className="text-sm text-ink-soft">
+          <p className="text-[0.9375rem] text-ink-soft">
             {formatDateTime(a.occurred_at)}, {activityTypeLabels[a.activity_type]}, {a.staff_users?.full_name ?? "ระบบ"}
           </p>
           <p className="whitespace-pre-line">{a.summary}</p>

@@ -40,7 +40,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
             </span>
             เช็กคุ้ม CRM
           </Link>
-          <div className="text-right text-sm lg:mt-5 lg:text-left">
+          <div className="text-right text-[0.9375rem] lg:mt-5 lg:text-left">
             <p className="font-semibold">{staff.fullName}</p>
             <p className="text-paper/75">{roleLabels[staff.role]}</p>
           </div>

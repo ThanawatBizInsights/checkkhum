@@ -49,7 +49,7 @@ export default async function StaffHome() {
                   <li key={r.id} className="flex flex-wrap items-start justify-between gap-3 py-3" data-reminder={r.kind}>
                     <div className="min-w-0">
                       <p className="font-semibold text-navy">{r.message}</p>
-                      <p className="text-sm text-ink-soft">
+                      <p className="text-[0.9375rem] text-ink-soft">
                         {r.recipient_id ? "ถึงคุณ" : "งานของทีม (ยังไม่มีผู้รับผิดชอบ)"}, {formatDateTime(r.created_at)}
                       </p>
                     </div>
@@ -107,7 +107,7 @@ export default async function StaffHome() {
                     <Link href={`/staff/enquiries/${e.id}`} className="min-w-0 font-semibold text-navy hover:underline">
                       {e.contact_name}, {e.product ? productLabels[e.product] : productLabels.contact}
                     </Link>
-                    <span className="flex items-center gap-2 text-sm text-ink-soft">
+                    <span className="flex items-center gap-2 text-[0.9375rem] text-ink-soft">
                       {formatDateTime(e.created_at)} <StatusBadge status={e.status} />
                     </span>
                   </li>
