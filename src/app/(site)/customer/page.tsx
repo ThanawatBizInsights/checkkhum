@@ -5,23 +5,39 @@ import { PolicyCard, type PortalDocument } from "@/components/customer/policy-ca
 import { LineButton } from "@/components/line-links";
 import { formatBaht, formatDate, productLabels } from "@/lib/crm-labels";
 import { customerEnquiryStatus, customerQuotationStatus, type PortalOverview } from "@/lib/portal";
+import { LineStatus, type LineLink } from "@/components/customer/line-status";
 import { requireCustomer } from "@/lib/server/customer-auth";
+import { getLineConfig, isLineLoginEmail } from "@/lib/server/line";
 
 export const metadata: Metadata = { title: "บัญชีของฉัน", robots: { index: false, follow: false } };
 
-export default async function CustomerDashboard({ searchParams }: { searchParams: Promise<{ welcome?: string; verified?: string }> }) {
+export default async function CustomerDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string; verified?: string; line?: string }>;
+}) {
   const customer = await requireCustomer();
-  const { welcome, verified } = await searchParams;
+  const { welcome, verified, line: lineParam } = await searchParams;
 
-  const [{ data: overviewData }, { data: docs }] = await Promise.all([
+  const [{ data: overviewData }, { data: docs }, { data: lineRow }] = await Promise.all([
     customer.db.rpc("portal_overview"),
     // RLS returns only this customer's approved documents.
     customer.db.from("policy_documents").select("id, policy_id, kind, title, content_type, created_at").order("created_at", { ascending: false }),
+    // RLS: only this login's own LINE link.
+    customer.db.from("customer_line_accounts").select("display_name, picture_url").maybeSingle(),
   ]);
   const overview = overviewData as PortalOverview | null;
+  const lineStatus = (
+    <LineStatus
+      line={(lineRow as LineLink) ?? null}
+      lineEnabled={!!getLineConfig()}
+      email={isLineLoginEmail(customer.email) ? null : customer.email}
+      justLinked={lineParam === "linked"}
+    />
+  );
 
   if (!customer.linked || !overview?.linked) {
-    return <NewCustomer overview={overview} email={customer.email} verified={!!verified} />;
+    return <NewCustomer overview={overview} lineStatus={lineStatus} verified={!!verified} />;
   }
 
   const docsByPolicy = new Map<string, PortalDocument[]>();
@@ -39,6 +55,7 @@ export default async function CustomerDashboard({ searchParams }: { searchParams
                 ? `คุณมีกรมธรรม์ ${overview.policies.length} ฉบับ${openRequests.length ? ` และคำขอที่กำลังดำเนินการ ${openRequests.length} รายการ` : ""}`
                 : "ยังไม่มีกรมธรรม์ในบัญชีนี้"}
             </p>
+            {lineStatus}
             {welcome && (
               <p role="status" className="mt-3 inline-block rounded-[var(--radius-control)] bg-mint px-3 py-1.5 text-[0.9375rem] text-teal-ink">
                 ตั้งรหัสผ่านแล้ว ครั้งต่อไปเข้าสู่ระบบด้วยอีเมลและรหัสผ่านนี้
@@ -214,7 +231,7 @@ function EnquiryList({ enquiries }: { enquiries: PortalOverview["enquiries"] }) 
  * A login without a linked CRM customer: usually someone who just registered.
  * Shows their own requests and the way forward; never anyone's policies.
  */
-function NewCustomer({ overview, email, verified }: { overview: PortalOverview | null; email: string; verified: boolean }) {
+function NewCustomer({ overview, lineStatus, verified }: { overview: PortalOverview | null; lineStatus: React.ReactNode; verified: boolean }) {
   const name = overview?.customer.full_name;
   const enquiries = overview?.enquiries ?? [];
   return (
@@ -222,7 +239,7 @@ function NewCustomer({ overview, email, verified }: { overview: PortalOverview |
       <section className="border-b border-line bg-sky py-8 md:py-12">
         <div className="wrap">
           <h1 className="text-[clamp(1.75rem,1.4rem+1.4vw,2.4rem)] leading-tight">{name ? `ยินดีต้อนรับ คุณ${name}` : "บัญชีของฉัน"}</h1>
-          <p className="mt-2 max-w-[38em] text-ink-soft">บัญชี {email}</p>
+          {lineStatus}
           {verified && (
             <p role="status" className="mt-3 inline-block rounded-[var(--radius-control)] bg-mint px-3 py-1.5 text-[0.9375rem] text-teal-ink">
               ยืนยันอีเมลแล้ว ครั้งต่อไปเข้าสู่ระบบด้วยอีเมลและรหัสผ่านที่ตั้งไว้
@@ -257,8 +274,8 @@ function NewCustomer({ overview, email, verified }: { overview: PortalOverview |
             กรมธรรม์ของฉัน
           </h2>
           <Empty>
-            ยังไม่มีกรมธรรม์ในบัญชีนี้ เคยทำประกันกับเช็กคุ้มแล้ว? แจ้งชื่อและเบอร์โทรทาง LINE ทีมงานจะตรวจสอบ แล้วส่งคำเชิญไปที่อีเมลนี้
-            เพื่อเชื่อมกรมธรรม์ เอกสาร และวันต่ออายุเข้ากับบัญชีของคุณ
+            ยังไม่มีกรมธรรม์ในบัญชีนี้ เคยทำประกันกับเช็กคุ้มแล้ว? แจ้งชื่อและเบอร์โทรทาง LINE ทีมงานจะตรวจสอบ แล้วส่งลิงก์เชิญ
+            (ในแชท LINE หรือทางอีเมล) เพื่อเชื่อมกรมธรรม์ เอกสาร และวันต่ออายุเข้ากับบัญชีของคุณ
           </Empty>
         </section>
       </div>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { ActionFailure, check, f, runAction, type ActionResult } from "@/lib/server/crm/action";
 import { getBackendConfig } from "@/lib/server/env";
+import { getLineConfig } from "@/lib/server/line";
 import { requestOrigin } from "@/lib/server/origin";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 
@@ -63,6 +64,24 @@ export async function inviteCustomer(_prev: ActionResult, formData: FormData): P
       );
     }
     return `ส่งคำเชิญไปที่ ${email} แล้ว ลิงก์ในอีเมลจะให้ลูกค้ายืนยันอีเมลและตั้งรหัสผ่าน`;
+  });
+}
+
+/**
+ * A single-use invitation link for customers who use LINE instead of email.
+ * Staff paste it into this customer's LINE chat; opening it while signed in
+ * (LINE or email) links that login to this customer. Only the token's hash is
+ * stored; the link is shown once.
+ */
+export async function createLineInviteLink(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const schema = z.object({ customer_id: f.uuid() });
+  return runAction("agent", schema, formData, async ({ customer_id }, staff) => {
+    const token = check(await staff.db.rpc("create_line_invitation", { p_customer_id: customer_id })) as string;
+    const line = getLineConfig();
+    const origin = await requestOrigin();
+    const link = line ? `https://liff.line.me/${line.liffId}?invite=${token}` : `${origin ?? ""}/line?invite=${token}`;
+    revalidatePath(`/staff/customers/${customer_id}`);
+    return `ลิงก์เชิญ (ใช้ได้ครั้งเดียว ภายใน 7 วัน ส่งในแชท LINE ของลูกค้ารายนี้เท่านั้น): ${link}`;
   });
 }
 

@@ -41,7 +41,8 @@ npm start
 | `/quote` | Quotation enquiry; `?plan=car-1 \| car-2plus \| car-3plus \| ev \| compulsory \| travel` preselects a plan |
 | `/contact` | Contact channels and callback request |
 | `/privacy` | Privacy notice: **draft**, not indexed |
-| `/customer/login` | Customer sign-in (Supabase Auth); header "เข้าสู่ระบบ" › ลูกค้า |
+| `/customer/login` | Customer sign-in (Supabase Auth): "เข้าสู่ระบบด้วย LINE" or email; header "เข้าสู่ระบบ" › ลูกค้า |
+| `/line` | LIFF endpoint and LINE Login page (`?link=1` connects LINE to the signed-in email account; `?invite=…` accepts a staff LINE invitation) |
 | `/customer/register` | Customer registration (email verification required) |
 | `/customer/verify-email` | Resend the verification email; expired verification links land here |
 | `/customer/forgot-password` | Request a password reset email |
@@ -54,6 +55,7 @@ npm start
 | `/staff/documents/[id]` | Staff download of a policy document |
 | `POST /api/enquiries` | Enquiry endpoint used by the quote and contact forms |
 | `GET /api/account` | Signed-in state for the header menu (`signed_out`, `customer` or `staff` only) |
+| `POST /api/line/session` | Verifies a LINE ID token with LINE, then signs the customer in (or links LINE to the current account) |
 
 ## Contact details
 
@@ -118,6 +120,8 @@ BASE_URL=http://localhost:3000 npm run verify:enquiries   # 31 end-to-end checks
 | `ENQUIRY_HASH_SALT` | Generate: `openssl rand -hex 32` | Hosting provider env settings |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` (optional) | Cloudflare dashboard › **Turnstile › Add widget** | Hosting provider env settings |
 | `SUPABASE_PUBLISHABLE_KEY` | Supabase dashboard › **Project Settings › API Keys** (starts with `sb_publishable_`) | Hosting provider env settings; used server-side by the staff CRM |
+| `NEXT_PUBLIC_LINE_LIFF_ID` (optional) | LINE Developers Console › your **LINE Login** channel › **LIFF** tab › LIFF ID (e.g. `1234567890-AbCdEfGh`) | Hosting provider env settings. Public by design: the browser needs it to start LIFF |
+| `LINE_LOGIN_CHANNEL_ID` (optional) | LINE Developers Console › the same LINE Login channel › **Basic settings** › Channel ID (digits; the LIFF ID starts with it) | Hosting provider env settings. Server only; used to verify LINE ID tokens |
 
 On **Vercel**: Project › **Settings › Environment Variables**; add each for
 Production (and Preview if previews should store enquiries, ideally in a
@@ -239,11 +243,13 @@ Local auth emails (sign-up verification, invitations, resets) arrive in Mailpit 
 **Checks**
 
 ```bash
-npm run db:test                                   # 202 database tests (4 suites)
+npm run db:test                                   # 240 database tests (5 suites)
 npx supabase db reset && npm run build && npm start
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:crm      # 78 end-to-end checks
 npx supabase db reset
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 163 customer portal + registration checks
+npx supabase db reset   # app built and started with the test LINE settings in scripts/verify-line.mjs
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:line     # 62 LINE Login checks
 ```
 
 Full launch audit (mobile layouts at 360/390px, Thai fonts and text size, every internal
@@ -336,6 +342,79 @@ needed. Then in the Supabase dashboard:
    registrations).
 6. **Advisors › Security Advisor**: confirm there are no findings.
 
+## LINE Login and LIFF (customers)
+
+Customers can open their account from the LINE Official Account's Rich Menu, or choose
+"เข้าสู่ระบบด้วย LINE" on `/customer/login`. It's the same Next.js site: the LIFF app's
+endpoint is `/line`, and the dashboard is the normal `/customer`.
+
+**How it works**
+1. `/line` starts the LIFF SDK (`@line/liff`) in the browser. In LINE the visitor is
+   signed in to LINE automatically; in a normal browser they choose
+   "เข้าสู่ระบบด้วย LINE" (LINE Login web page) or switch to email. If LIFF can't start
+   (no network, wrong LIFF ID, opened in an unsupported place) the page says so in Thai
+   and offers email login.
+2. The page sends only the **LINE ID token** to `POST /api/line/session`. The server
+   verifies it with LINE (`https://api.line.me/oauth2/v2.1/verify`, our channel ID)
+   and uses only what LINE returns: user ID, display name, picture. Profile data from
+   the browser is never trusted.
+3. The server signs the visitor in to the Supabase login mapped to that LINE user ID
+   (`customer_line_accounts`, unique on both sides), or creates a customer login for a
+   new LINE user. Sessions are the same httpOnly cookies as email login, so RLS and all
+   portal rules apply unchanged.
+
+**Linking to existing records (never by name, email or phone)**
+- A customer who already has an email account opens `/customer` and taps
+  "เชื่อมบัญชี LINE" (or, signed in with email, opens the LIFF app and confirms
+  "เชื่อมกับบัญชีนี้"). Both proofs are required: the email session and LINE's token.
+- A customer who only uses LINE: staff open the customer in the CRM › "บัญชีลูกค้าออนไลน์"
+  › "สร้างลิงก์เชิญทาง LINE", and paste the link into that customer's LINE chat. It's
+  single-use, expires in 7 days, and only its hash is stored. Opening it links the
+  LINE login to that customer, after which the dashboard shows quotations, policies,
+  vehicles, approved documents and renewal dates.
+- One LINE user can belong to only one account, and an account to only one LINE user.
+  A LINE user already used by another account is refused, never taken over.
+
+**Staff stay separate.** LINE never signs anyone in to a staff login, staff logins can't
+be linked to LINE, and a LINE-linked login can't be made staff. If a staff session is
+active in the browser, LINE login is refused until staff sign out.
+
+### Set up in LINE Developers Console
+
+1. **Provider:** use the provider that owns the CheckKhum LINE Official Account (so LINE
+   user IDs match the OA's).
+2. **Create a channel › LINE Login.** App type: **Web app**. Then:
+   - **Basic settings:** note the **Channel ID** (`LINE_LOGIN_CHANNEL_ID`). Under
+     "Linked LINE Official Account", choose the CheckKhum OA.
+   - **LINE Login › Callback URL:** `https://<your-domain>/line` (add the
+     `https://<project>.vercel.app/line` URL too if you test there). Used when customers
+     log in from a normal browser.
+3. **LIFF tab › Add:**
+   - Size: **Full**
+   - Endpoint URL: `https://<your-domain>/line`
+   - Scopes: **openid** and **profile** (email is not needed)
+   - Add friend option: **On (normal)**
+   - Note the **LIFF ID** (`NEXT_PUBLIC_LINE_LIFF_ID`).
+4. **Publish** the channel. While it's "Developing", only the channel's admins and
+   testers can log in.
+5. **Rich Menu** (LINE Official Account Manager › Rich menus): set the button's action to
+   **Link** › `https://liff.line.me/<LIFF ID>`.
+
+### Vercel
+
+Add `NEXT_PUBLIC_LINE_LIFF_ID` and `LINE_LOGIN_CHANNEL_ID` (Production, and Preview if
+wanted), then **redeploy** (the LIFF ID is built into the page). The existing
+`SUPABASE_*` variables are reused; no LINE channel secret is needed. Then apply the
+migration `20261010090000_line_login.sql` (`npx supabase db push`).
+
+Leaving the two LINE variables empty hides LINE Login; email login keeps working.
+
+**Test on a phone** after setup: tap the Rich Menu, check you land in "บัญชีของฉัน";
+open `/customer/login` in a phone browser and use "เข้าสู่ระบบด้วย LINE"; send yourself a
+staff LINE invitation link. The automated tests (`npm run verify:line`) use a local
+stand-in for LINE's verify endpoint, so the LIFF handshake itself is only tested on
+a real device.
+
 ## Before launch
 
 - Fill in contact and legal details in `src/config/site.ts`.
@@ -346,6 +425,8 @@ needed. Then in the Supabase dashboard:
 - Create the first admin account (see "Staff CRM").
 - Configure Site URL, redirect URL, the three email templates, SMTP, sign-up with
   email confirmation and rate limits (see "Customer portal").
+- For LINE: LINE Login channel, LIFF app, callback URL, Rich Menu link and the two
+  Vercel variables (see "LINE Login and LIFF").
 - Replace `public/images/checkkhum-logo.png` and `hero-car.webp` with the original
   high-resolution artwork; the current files are cropped from the 667px-wide approved poster.
 

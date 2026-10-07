@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import { AuthCard, FormField, NotConnected } from "@/components/customer/auth-card";
 import { LineButton } from "@/components/line-links";
 import { ActionForm } from "@/components/staff/action-form";
+import { buttonClasses } from "@/components/button";
+import { LineIcon } from "@/components/icons";
 import { getCustomerState } from "@/lib/server/customer-auth";
+import { getLineConfig } from "@/lib/server/line";
 import { customerSignIn } from "../_actions/auth";
 
 export const metadata: Metadata = { title: "เข้าสู่ระบบลูกค้า", robots: { index: false, follow: false } };
@@ -28,6 +31,19 @@ export default async function CustomerLoginPage({ searchParams }: { searchParams
             <p role="alert" className="mt-4 rounded-[var(--radius-control)] bg-error-bg px-3 py-2 text-[0.9375rem] text-error">
               ลิงก์ในอีเมลหมดอายุหรือถูกใช้ไปแล้ว ขอลิงก์ใหม่ที่ “ลืมรหัสผ่าน” หรือขอคำเชิญใหม่จากทีมงาน
             </p>
+          )}
+          {getLineConfig() && (
+            <>
+              <Link href="/line?start=1" className={`${buttonClasses("primary", "md", true)} mt-5 gap-2`}>
+                <LineIcon className="size-6 shrink-0" />
+                เข้าสู่ระบบด้วย LINE
+              </Link>
+              <p className="mt-4 flex items-center gap-3 text-[0.9375rem] text-ink-soft" aria-hidden="true">
+                <span className="h-px flex-1 bg-line" />
+                หรือใช้อีเมล
+                <span className="h-px flex-1 bg-line" />
+              </p>
+            </>
           )}
           <ActionForm action={customerSignIn} submitLabel="เข้าสู่ระบบ" pendingLabel="กำลังเข้าสู่ระบบ" size="md" className="mt-5 grid gap-4">
             <FormField id="email" name="email" type="email" label="อีเมล" autoComplete="username" required />

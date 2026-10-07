@@ -19,6 +19,8 @@ on a freshly reset database with the fictional seed.
 | Database, portal (8 October) | `npm run db:test` | 160/160 | Adds 56 portal assertions: RLS on new tables, private bucket, approval stamping, linking rules (unverified, staff, no invitation), A/B isolation in tables, storage and functions, no notes/drafts/staff names in the overview, invitations can't be redirected |
 | Self-registration (9 October) | `npm run verify:portal` | 163/163 (54 new) | Login page "ยังไม่มีบัญชี? สมัครสมาชิก" → `/customer/register`; validation reports every error at once and keeps name and email; registration creates an unverified login and one profile with the privacy acknowledgement; Thai confirmation; login refused until verified (clear message); resend works and the superseded link lands on the expired page; verification signs in to a welcome dashboard with ขอใบเสนอราคา and empty states; links single-use; existing account and staff email refused with a Thai message; quotation submitted while signed in is attributed to the account and shown with its status; two registered accounts can't see each other's requests or profiles (UI, REST, RPC); registered logins read no staff, customers or documents and can't create staff rows, profiles or attributions; no staff_users rows created; registering with an existing CRM customer's email reveals nothing until staff invite that email, then the verified login sees the policy |
 | Database, self-registration (9 October) | `npm run db:test` | 202/202 (41 new + 1 changed) | Profile trigger and fallback, no duplicates, staff get none, nothing granted or claimed by registration, invitation still links, submitted-enquiry attribution rules and isolation |
+| LINE Login / LIFF (10 October) | `npm run verify:line` | 62/62 | Login page LINE button; `/line` renders and, when LIFF can't start, explains in Thai with email fallback (390px, no scroll); same-origin only; forged, wrong-channel, expired and malformed tokens refused (verified against the LINE verify API contract with our channel ID); first LINE login creates one customer login with a `line` profile; repeat login reuses it and refreshes name/picture; dashboard shows LINE name/picture and never the internal email; quote while signed in with LINE is attributed and shown; two LINE users isolated; LINE customers refused at staff pages; email account links LINE, can't take over a LINE user used elsewhere or add a second one, and then opens from LINE with its policy, vehicle and renewal date; signed-in email + new LINE user asks first, "use separate" keeps records apart; staff session refused and never linked, no staff rows; staff LINE invitation link (hash stored, single-use) links the right customer only |
+| Database, LINE (10 October) | `npm run db:test` | 240/240 (38 new) | One-to-one mapping, server-only functions, staff never mapped and LINE logins never staff, customers read only their own LINE row, invitation links (viewer refused, hash only, guessed and reused tokens refused) |
 | Scheduler | manual | pass | A temporary one-minute pg_cron schedule ran the renewal job by itself (`succeeded`), logged as `schedule`, created no duplicates; removed afterwards |
 
 ## Fixed during this run
@@ -48,15 +50,18 @@ on a freshly reset database with the fictional seed.
 
 Must be done before real customers use the site:
 
-1. **Apply the database to the live Supabase project.** The first 9 migrations are on the
-   live `checkkhum` project (checked 9 October); the self-registration migration
-   `20261009090000` still needs `npx supabase db push` (migrations only, never the seed).
-   Then Security Advisor shows no findings.
+1. **Apply the database to the live Supabase project.** The first 10 migrations are on the
+   live `checkkhum` project (checked 10 October); the LINE migration `20261010090000`
+   still needs `npx supabase db push` (migrations only, never the seed).
 2. **Deploy with the environment variables** `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
    `SUPABASE_PUBLISHABLE_KEY`, `ENQUIRY_HASH_SALT` set in the hosting provider, on a
    domain with HTTPS. Confirm the platform sets `x-real-ip` / `x-forwarded-for`
    itself (Vercel does), or per-IP rate limits can be bypassed.
 3. **Create the first admin** (README › Staff CRM) and the staff accounts.
+3b. **LINE Login setup** (README › LINE Login and LIFF): LINE Login channel linked to the
+   OA, LIFF app (endpoint `https://<domain>/line`, scopes openid + profile), callback
+   URL, Rich Menu link `https://liff.line.me/<LIFF ID>`, `NEXT_PUBLIC_LINE_LIFF_ID` and
+   `LINE_LOGIN_CHANNEL_ID` in Vercel, migration `20261010090000`, then test on a phone.
 3a. **Customer portal auth setup** (README › Customer portal): Site URL, redirect URL,
    the three Thai email templates, your own SMTP sender, sign-up **on** with **Confirm
    email on**, minimum password length 10, and rate limits. Without them registrations,

@@ -169,6 +169,26 @@ product page, desktop                      product page, mobile
   chips in the customer's words) and a policy empty state that explains how an existing
   policyholder gets linked. No policy cards until staff link the account.
 
+## LINE Login and LIFF
+
+- **Mobile first, inside LINE:** `/line` is the same narrow navy-bordered card as the other
+  customer auth pages, so the LIFF view looks like the site customers already know. In
+  LINE it shows only a spinner ("กำลังเปิด LINE", "กำลังตรวจสอบกับ LINE") and goes straight
+  to "บัญชีของฉัน"; there is nothing to tap on the happy path.
+- **Outside LINE:** a short explanation and three full-width buttons in order of
+  likelihood: เข้าสู่ระบบด้วย LINE (primary), เปิดในแอป LINE, ใช้อีเมลเข้าสู่ระบบแทน.
+  Failures say what happened in Thai and always offer email login; retry where it helps.
+- **Asking before linking:** if an email account is signed in and a new LINE user arrives,
+  the card asks "เชื่อมบัญชี LINE กับบัญชีที่เข้าสู่ระบบอยู่?" with the email partly hidden;
+  "ไม่ใช่ฉัน ใช้บัญชี LINE แยก" keeps the accounts apart.
+- **Login page:** "เข้าสู่ระบบด้วย LINE" sits above the email form as the primary button
+  (teal with the LINE mark; LINE green on white text fails contrast), then "หรือใช้อีเมล".
+- **Dashboard:** under the greeting, the LINE picture and name ("เชื่อมกับ LINE …"); email
+  accounts without LINE get an outline "เชื่อมบัญชี LINE" button. The internal login email
+  of LINE-only accounts is never shown.
+- **Staff:** the customer's online-account sheet adds "สร้างลิงก์เชิญทาง LINE"; the link is
+  shown once in the result message to copy into the customer's LINE chat.
+
 ## Launch audit fixes
 
 - No text below 15px anywhere (CRM name/role/badges and the QR placeholder were 14px).

@@ -76,13 +76,13 @@ isOneToOne: false
                   ]
                 },"customer_invitations": {
                   Row: {
-                    "accepted_at": string | null,"accepted_user_id": string | null,"created_at": string,"customer_id": string,"email": string,"expires_at": string,"id": string,"invited_by": string | null,"revoked_at": string | null
+                    "accepted_at": string | null,"accepted_user_id": string | null,"created_at": string,"customer_id": string,"email": string | null,"expires_at": string,"id": string,"invited_by": string | null,"revoked_at": string | null,"token_hash": string | null
                   }
                   Insert: {
-                    "accepted_at"?: string | null,"accepted_user_id"?: string | null,"created_at"?: string,"customer_id": string,"email": string,"expires_at"?: string,"id"?: string,"invited_by"?: string | null,"revoked_at"?: string | null
+                    "accepted_at"?: string | null,"accepted_user_id"?: string | null,"created_at"?: string,"customer_id": string,"email"?: string | null,"expires_at"?: string,"id"?: string,"invited_by"?: string | null,"revoked_at"?: string | null,"token_hash"?: string | null
                   }
                   Update: {
-                    "accepted_at"?: string | null,"accepted_user_id"?: string | null,"created_at"?: string,"customer_id"?: string,"email"?: string,"expires_at"?: string,"id"?: string,"invited_by"?: string | null,"revoked_at"?: string | null
+                    "accepted_at"?: string | null,"accepted_user_id"?: string | null,"created_at"?: string,"customer_id"?: string,"email"?: string | null,"expires_at"?: string,"id"?: string,"invited_by"?: string | null,"revoked_at"?: string | null,"token_hash"?: string | null
                   }
                   Relationships: [
                     {
@@ -98,6 +98,19 @@ isOneToOne: false
       referencedRelation: "staff_users"
       referencedColumns: ["id"]
     }
+                  ]
+                },"customer_line_accounts": {
+                  Row: {
+                    "display_name": string | null,"id": string,"last_login_at": string | null,"line_user_id": string,"linked_at": string,"picture_url": string | null,"updated_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "display_name"?: string | null,"id"?: string,"last_login_at"?: string | null,"line_user_id": string,"linked_at"?: string,"picture_url"?: string | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "display_name"?: string | null,"id"?: string,"last_login_at"?: string | null,"line_user_id"?: string,"linked_at"?: string,"picture_url"?: string | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"customer_profiles": {
                   Row: {
@@ -495,14 +508,26 @@ isOneToOne: false
             "accept_customer_invitation":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"accept_invitation_token":
+{ Args: { "p_token": string }; Returns: string
+                           },
 "consume_rate_limit":
 { Args: { "p_bucket_key": string,"p_limit": number,"p_window_seconds": number }; Returns: Json
                            },
 "convert_quotation_to_policy":
 { Args: { "p_end_date": string,"p_policy_number": string,"p_quotation_id": string,"p_start_date": string }; Returns: string
                            },
+"create_line_invitation":
+{ Args: { "p_customer_id": string }; Returns: string
+                           },
 "crm_conversion_report":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"line_login_user":
+{ Args: { "p_line_user_id": string }; Returns: string
+                           },
+"link_line_account":
+{ Args: { "p_display_name"?: string,"p_line_user_id": string,"p_picture_url"?: string,"p_user": string }; Returns: string
                            },
 "portal_overview":
 { Args: Record<PropertyKey, never>; Returns: Json
