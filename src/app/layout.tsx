@@ -9,7 +9,7 @@ import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
   title: {
-    default: `${siteConfig.name} | ประกันรถยนต์ เลือกให้คุ้ม เหมาะกับคุณ`,
+    default: `${siteConfig.name} | ขอใบเสนอราคาประกันรถยนต์ เทียบแผนก่อนตัดสินใจ`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,

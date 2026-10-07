@@ -5,15 +5,17 @@ import { formatThaiPhone } from "@/lib/contact";
 import { isValidThaiPhone, normalizeThaiMobile, type EnquiryInput } from "@/lib/submissions";
 import { FormError, HoneypotField, MarketingConsent, TurnstileWidget } from "./anti-spam-fields";
 import { Button } from "./button";
-import { DemoNotice } from "./demo-notice";
+import { DemoNotice, IntakeUnavailableNotice } from "./demo-notice";
 import { EnquiryResult } from "./enquiry-result";
 import { ChipGroup, TextAreaField, TextField } from "./form-fields";
+import { LineButton } from "./line-links";
+import type { SubmissionMode } from "./quote-form-client";
 import { useEnquirySubmission } from "./use-enquiry-submission";
 
 const empty = { name: "", phone: "", message: "" };
 
 /** "Ask us to call you back" form for the contact page. Render via `ContactForm`. */
-export function ContactFormClient({ demo, turnstileSiteKey }: { demo: boolean; turnstileSiteKey?: string }) {
+export function ContactFormClient({ mode, turnstileSiteKey }: { mode: SubmissionMode; turnstileSiteKey?: string }) {
   const [fields, setFields] = useState(empty);
   const [channel, setChannel] = useState<"phone" | "line">("phone");
   const [marketing, setMarketing] = useState(false);
@@ -55,6 +57,15 @@ export function ContactFormClient({ demo, turnstileSiteKey }: { demo: boolean; t
     }
   }
 
+  if (mode === "unavailable") {
+    return (
+      <div className="grid gap-4">
+        <IntakeUnavailableNotice>ฝากข้อความถึงทีมงานทาง LINE ได้เลย</IntakeUnavailableNotice>
+        <LineButton block>ติดต่อทีมงานผ่าน LINE</LineButton>
+      </div>
+    );
+  }
+
   if (submission.result) {
     return (
       <EnquiryResult
@@ -87,9 +98,7 @@ export function ContactFormClient({ demo, turnstileSiteKey }: { demo: boolean; t
       <MarketingConsent id="contact-marketing" checked={marketing} onChange={setMarketing} />
       <HoneypotField id="contact-website" {...submission.honeypot} />
       {turnstileSiteKey && <TurnstileWidget siteKey={turnstileSiteKey} onToken={submission.onTurnstileToken} />}
-      {demo && (
-        <DemoNotice>ระบบรับข้อความยังไม่เชื่อมต่อ ข้อความจะถูกบันทึกเป็นข้อมูลสาธิตในเบราว์เซอร์นี้ แล้วคุณส่งต่อให้เราทาง LINE หรือโทรได้</DemoNotice>
-      )}
+      {mode === "demo" && <DemoNotice>โหมดทดลองบนเครื่องนักพัฒนา: ข้อความจะเก็บไว้ในเบราว์เซอร์นี้เท่านั้น ไม่ถึงทีมงาน</DemoNotice>}
       <FormError message={submission.formError} />
       <Button type="submit" block disabled={submission.pending} aria-busy={submission.pending || undefined}>
         {submission.pending ? "กำลังส่ง" : "ฝากให้ติดต่อกลับ"}

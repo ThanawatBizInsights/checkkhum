@@ -41,7 +41,7 @@ npm start
 | `/quote` | Quotation enquiry; `?plan=car-1 \| car-2plus \| car-3plus \| ev \| compulsory \| travel` preselects a plan |
 | `/contact` | Contact channels and callback request |
 | `/privacy` | Privacy notice: **draft**, not indexed |
-| `/customer/login` | Customer sign-in (Supabase Auth): "เข้าสู่ระบบด้วย LINE" or email; header "เข้าสู่ระบบ" › ลูกค้า |
+| `/customer/login` | Customer sign-in (Supabase Auth): "เข้าสู่ระบบด้วย LINE" or email. Not linked from public navigation for now (quotations need no account); existing customers use the URL or the links in their emails |
 | `/line` | LIFF endpoint and LINE Login page (`?link=1` connects LINE to the signed-in email account; `?invite=…` accepts a staff LINE invitation) |
 | `/customer/register` | Customer registration (email verification required) |
 | `/customer/verify-email` | Resend the verification email; expired verification links land here |
@@ -50,22 +50,23 @@ npm start
 | `/customer/set-password` | Choose a password after an invitation or reset link |
 | `/customer` | Customer dashboard ("บัญชีของฉัน"): policies, vehicles, coverage and renewal dates, documents, quotations, request status, renewal request, LINE |
 | `/customer/documents/[id]` | Download one of the customer's approved documents (60-second signed URL) |
-| `/staff/login` | Staff sign-in (Supabase Auth); header "เข้าสู่ระบบ" › เจ้าหน้าที่ |
+| `/staff/login` | Staff sign-in (Supabase Auth); discreet footer link "สำหรับเจ้าหน้าที่" |
 | `/staff/…` | Staff CRM: overview, enquiries, customers, policies, tasks, reports, admin, account (see "Staff CRM") |
 | `/staff/documents/[id]` | Staff download of a policy document |
 | `POST /api/enquiries` | Enquiry endpoint used by the quote and contact forms |
-| `GET /api/account` | Signed-in state for the header menu (`signed_out`, `customer` or `staff` only) |
+| `GET /api/account` | Signed-in state (`signed_out`, `customer` or `staff` only); kept for when the portal returns to the navigation |
 | `POST /api/line/session` | Verifies a LINE ID token with LINE, then signs the customer in (or links LINE to the current account) |
 
 ## Contact details
 
 All contact details are in **`src/config/site.ts`**: phone, LINE Official Account link,
 LINE ID, LINE QR image, email, opening hours, and the company details used in the privacy
-notice. Empty values show the poster's placeholders (`[เบอร์โทรศัพท์]`, `[LINE ID]`). For the
+notice. **Empty values are hidden** on public pages (no placeholder text, no empty QR box);
+only the draft privacy notice marks missing legal details for review. For the
 QR code, add the image to `public/images/` and set `lineQrImage`, e.g. `"/images/line-qr.png"`.
 
 **LINE.** `contact.lineUrl` (currently `https://lin.ee/86TezJV`) is used by every LINE
-button: the homepage hero ("คุยกับเราผ่าน LINE"), the mobile sticky bar ("LINE"), the
+button: the mobile sticky bar ("LINE"), the
 official "เพิ่มเพื่อน" button in the contact sections, the contact lists and footer, and
 the quotation confirmation ("ติดต่อทีมงานผ่าน LINE"). All open in a new tab with
 `rel="noopener noreferrer"`. The link only opens the LINE chat; it never sends form
@@ -106,7 +107,7 @@ Then:
 
 ```bash
 npm run build && npm start
-BASE_URL=http://localhost:3000 npm run verify:enquiries   # 31 end-to-end checks (local only)
+BASE_URL=http://localhost:3000 npm run verify:enquiries   # 43 end-to-end checks (local only)
 ```
 
 ### Configuring environment variables
@@ -163,16 +164,23 @@ Ready, but only `public/` is deployed and `/` returns 404 NOT_FOUND.
 | Output Directory | default (blank; never `public`) |
 | Install Command | default |
 
-Staff sign in at `/staff/login` (linked as "เข้าสู่ระบบเจ้าหน้าที่" in the footer);
+Staff sign in at `/staff/login` (linked as "สำหรับเจ้าหน้าที่" in the footer);
 the dashboard is `/staff`.
 
-## Demo mode
+## Demo mode (local development only)
 
-If `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are both empty, the endpoint still
-validates and spam-checks each enquiry, then replies `mode: "demo"`. The form
-keeps it as *ข้อมูลสาธิต* (demo data) in the visitor's own browser and says so
-on screen; the visitor can copy the summary and paste it into the LINE chat, or call. Setting only one of the two variables is treated as a
-misconfiguration and the endpoint returns an error rather than losing enquiries.
+Demo mode exists only under `npm run dev` (`NODE_ENV=development`) with
+`SUPABASE_URL` and `SUPABASE_SECRET_KEY` both empty: the endpoint validates and
+spam-checks each enquiry, replies `mode: "demo"`, and the form keeps it as
+*ข้อมูลสาธิต* in the browser and says so on screen.
+
+In a production build, the site never shows a success screen unless the
+database saved the enquiry and returned a `CK-…` reference. If `SUPABASE_URL`,
+`SUPABASE_SECRET_KEY` or `ENQUIRY_HASH_SALT` (32+ characters) is missing, the
+quote and contact forms are replaced with "ตอนนี้ส่งคำขอทางเว็บไซต์ไม่ได้ชั่วคราว"
+and a LINE button, the endpoint answers `503 not_configured`, and the server log
+names the missing variables (names only, never values). Pages are prerendered,
+so **redeploy after changing environment variables**.
 
 Without Supabase configured, the staff CRM is unavailable and its login page says so.
 
@@ -247,9 +255,10 @@ npm run db:test                                   # 240 database tests (5 suites
 npx supabase db reset && npm run build && npm start
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:crm      # 78 end-to-end checks
 npx supabase db reset
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 163 customer portal + registration checks
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 160 customer portal + registration checks
 npx supabase db reset   # app built and started with the test LINE settings in scripts/verify-line.mjs
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:line     # 62 LINE Login checks
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey  # 68 quote journey checks (UNCONFIGURED_URL=… adds the no-settings case)
 ```
 
 Full launch audit (mobile layouts at 360/390px, Thai fonts and text size, every internal
@@ -271,7 +280,7 @@ After changing the schema, run `npm run db:types` to refresh `src/lib/database.t
 
 ## Customer portal
 
-Customers sign in at `/customer/login` (header "เข้าสู่ระบบ" › ลูกค้า, or the footer) and
+Customers sign in at `/customer/login` (not in the public navigation for now; quotations need no account) and
 see only their own records at `/customer` ("บัญชีของฉัน"): policies with insurer, policy
 number, insured vehicle, coverage dates and renewal date; documents staff have approved;
 quotations staff have sent; the status of their requests; a "ขอใบเสนอราคาต่ออายุ"

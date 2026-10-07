@@ -43,7 +43,8 @@ function quote(overrides = {}) {
   return {
     type: "quote",
     planId: "car-1",
-    carModel: "Mazda 2",
+    carBrand: "Mazda",
+    carModel: "2",
     carYear: "2020",
     name: "ทดสอบ ระบบ",
     phone: `080${runId}${String(++ipCounter).padStart(2, "0")}`.slice(0, 10),
@@ -109,6 +110,26 @@ function sql(query) {
   check(r.status === 400 && r.json?.fieldErrors?.carYear, `car year out of range -> 400`);
 }
 {
+  const r = await post(quote({ carBrand: "", carModel: "" }));
+  check(r.status === 400 && r.json?.fieldErrors?.carBrand && r.json?.fieldErrors?.carModel, `car plan without brand and model -> 400`);
+}
+{
+  const r = await post(quote({ planId: "travel", carBrand: undefined, carModel: undefined, carYear: undefined }));
+  check(r.status === 400 && r.json?.fieldErrors?.destination && r.json?.fieldErrors?.tripDays, `travel without destination and days -> 400`);
+}
+{
+  const r = await post(quote({ planId: "compulsory" }));
+  check(r.status === 400 && r.json?.fieldErrors?.vehicleType, `พ.ร.บ. without vehicle type -> 400`);
+}
+{
+  const r = await post(quote({ renewalTiming: "yesterday" }));
+  check(r.status === 400 && r.json?.fieldErrors?.renewalTiming, `unknown renewal timing -> 400`);
+}
+{
+  const r = await post(quote({ planId: "travel", destination: "ญี่ปุ่น", tripDays: "5", tripStart: "2001-01-01" }));
+  check(r.status === 400 && r.json?.fieldErrors?.tripStart, `trip start in the past -> 400`);
+}
+{
   const r = await post(quote({ name: "Visit https://spam.example" }));
   check(r.status === 400 && r.json?.fieldErrors?.name, `link in name -> 400`);
 }
@@ -134,7 +155,10 @@ function sql(query) {
 }
 
 // --- Successful submission ----------------------------------------------------
-const good = quote({ marketingConsent: true, carModel: "Toyota Corolla Cross", carYear: "2023" });
+const good = quote({
+  marketingConsent: true, carBrand: "Toyota", carModel: "Corolla Cross", carYear: "2023",
+  renewalTiming: "1_3_months", repair: "dealer", usage: "personal", evCharger: "yes", // evCharger is not a car-1 field: dropped
+});
 const first = await post(good);
 check(first.status === 201 && first.json?.mode === "database" && /^CK-\d{6}-[A-Z0-9]{4}$/.test(first.json?.reference ?? ""),
   `valid quote -> 201 with reference ${first.json?.reference}`);
@@ -145,12 +169,37 @@ const row = sql(`select e.type, e.product, e.status, e.source, e.contact_phone, 
                  from public.enquiries e join public.customers c on c.id = e.customer_id left join public.vehicles v on v.id = e.vehicle_id
                  where e.reference = '${ref}'`);
 check(row === `quote|car_1|new|web_quote_form|${good.phone}|Toyota Corolla Cross|2023|ทดสอบ ระบบ|t`, `stored enquiry, customer and vehicle are correct`);
+check(sql(`select v.make || '|' || v.model || '|' || e.renewal_timing || '|' || e.details::text
+           from public.enquiries e join public.vehicles v on v.id = e.vehicle_id where e.reference = '${ref}'`)
+  === `Toyota|Corolla Cross|1_3_months|{"usage": "personal", "repair": "dealer"}`, `brand, model, renewal timing and car-1 details stored separately`);
 check(sql(`select string_agg(purpose || '=' || granted || '@' || notice_version, ',' order by purpose)
            from public.consent_records c join public.enquiries e on e.id = c.enquiry_id where e.reference = '${ref}'`)
   === "quote_processing=true@draft-2026-10,marketing=true@draft-2026-10", `consent records stored (quote processing + marketing opt-in)`);
 check(Number(sql(`select count(*) from public.audit_logs a join public.enquiries e on a.record_id = e.id::text where e.reference = '${ref}' and a.action = 'insert'`)) === 1,
   `audit log written for the new enquiry`);
 check(!sql(`select string_agg(bucket_key, ',') from private.rate_limit_buckets`).includes(good.phone), `rate-limit table stores hashes, not phone numbers`);
+
+// --- Product-specific fields ------------------------------------------------------
+{
+  const r = await post(quote({ planId: "ev", carBrand: "BYD", carModel: "Seal", carYear: "2025", evCharger: "yes", repair: "dealer", renewalTiming: "within_1_month" }));
+  check(r.status === 201, `EV quote -> 201 (${r.json?.reference})`);
+  check(sql(`select e.product || '|' || e.details::text || '|' || v.is_ev from public.enquiries e join public.vehicles v on v.id = e.vehicle_id where e.reference = '${r.json?.reference}'`)
+    === `ev|{"ev_home_charger": "yes"}|true`, `EV: charger answer stored, repair choice (car-1 only) dropped`);
+}
+{
+  const r = await post(quote({ planId: "compulsory", carBrand: "", carModel: "", carYear: "", vehicleType: "pickup", renewalTiming: "no_current_policy" }));
+  check(r.status === 201, `พ.ร.บ. quote with vehicle type only -> 201 (${r.json?.reference})`);
+  check(sql(`select e.product || '|' || e.details::text || '|' || e.renewal_timing || '|' || (e.vehicle_id is null) from public.enquiries e where e.reference = '${r.json?.reference}'`)
+    === `compulsory|{"vehicle_type": "pickup"}|no_current_policy|true`, `พ.ร.บ.: vehicle type stored, no empty vehicle row`);
+}
+{
+  const start = new Date(Date.now() + 20 * 86_400_000).toISOString().slice(0, 10);
+  const r = await post(quote({ planId: "travel", destination: "ญี่ปุ่น", tripStart: start, tripDays: "7", travellers: "2", usage: "personal" }));
+  check(r.status === 201, `travel quote -> 201 (${r.json?.reference})`);
+  check(sql(`select e.product || '|' || e.travel_destination || '|' || e.travel_days || '|' || e.travellers || '|' || e.details::text || '|' || (e.vehicle_id is null)
+             from public.enquiries e where e.reference = '${r.json?.reference}'`)
+    === `travel|ญี่ปุ่น|7|2|{"trip_start": "${start}"}|true`, `travel: destination, dates and travellers stored; car fields ignored`);
+}
 
 // --- Duplicate handling ---------------------------------------------------------
 {

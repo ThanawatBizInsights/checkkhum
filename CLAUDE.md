@@ -19,6 +19,7 @@ npm run verify:enquiries  # end-to-end API checks against LOCAL Supabase only
 npm run verify:crm        # CRM permissions + flows (LOCAL only, after db:reset)
 npm run verify:portal     # customer portal: invites, resets, A-vs-B isolation (LOCAL only, after db:reset)
 npm run verify:line       # LINE Login/LIFF with a local stand-in for LINE's verify API (LOCAL only, see script header)
+npm run verify:journey    # quote journey in a phone browser: each product, confirmation, CRM, failures (LOCAL only)
 npm run audit             # launch audit: mobile, Thai text, links, anon access, secrets, headers
 ```
 
@@ -46,7 +47,7 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 | `src/app/staff/` | Staff login and dashboard, separate layout, `noindex` |
 | `src/app/(site)/customer/`, `src/lib/server/customer-auth.ts`, `src/components/customer/` | Customer portal (register, verify email, login, reset, dashboard, documents), `noindex` |
 | `src/app/staff/_actions/portal.ts`, `src/components/staff/portal-sheets.tsx` | Staff side of the portal: invitations, account links, policy documents |
-| `src/components/account-menu.tsx`, `src/app/api/account/route.ts` | Header "เข้าสู่ระบบ" / "บัญชีของฉัน" menu (desktop + mobile) |
+| `src/content/quote-options.ts`, `src/content/journey.ts` | Quote form choices (brands are suggestions only) and homepage/quote journey copy, FAQs |
 | `src/app/(site)/line/`, `src/components/line/`, `src/app/api/line/session/route.ts`, `src/lib/server/line.ts` | LINE Login / LIFF: entry page, client LIFF start-up, server token verification and session |
 | `supabase/templates/` | Thai auth email templates (sign-up confirmation, invite, recovery) using `token_hash` links |
 | `DESIGN.md` | Design tokens, layout, rationale |
@@ -55,7 +56,7 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 
 - **Contact details:** never hard-code a phone number, LINE ID, email or address in a page or
   component. Read from `siteConfig` via `src/lib/contact.ts`. Never invent real-looking values;
-  empty config values must render the poster placeholders (`[เบอร์โทรศัพท์]`, `[LINE ID]`).
+  empty config values are hidden on public pages (only the draft privacy notice marks them).
 - **LINE links:** every LINE button uses `siteConfig.contact.lineUrl` through
   `src/components/line-links.tsx` (`LineButton`, `LineAddFriendButton`, `lineLinkProps`),
   opening in a new tab with `rel="noopener noreferrer"`. LINE links never carry form
@@ -76,9 +77,14 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 - **No personal data in logs**, including names, phone numbers and IPs. Log references and error codes.
 - **Seed data is fictional and local only.** Never run `seed.sql` or
   `scripts/verify-enquiry-api.mjs` against production.
-- **Demo mode:** without Supabase env vars, enquiries stay in the visitor's browser marked
-  `demo: true`, and every UI that collects or shows them says so (`DemoNotice` / `DemoBadge`).
-  Keep those labels tied to `isDatabaseConfigured()`.
+- **Demo mode is development-only** (`submissionMode()` in `src/lib/server/env.ts`). In
+  production, missing intake settings mean `unavailable`: forms show `IntakeUnavailableNotice`
+  plus LINE, the API returns 503 `not_configured`, and the log names missing variables only.
+  Never show a success screen unless the server returned `mode: "database"` and a `CK-` reference.
+- **Quotation-first:** no login or registration links in the public header, mobile menu or
+  footer; the only staff entry is the footer's "สำหรับเจ้าหน้าที่". Don't publish licences,
+  partners, prices, discounts, reviews, customer counts or response-time promises until the
+  business confirms them; facts live in `src/content/journey.ts`.
 - **Staff CRM permissions:** CRM code reads and writes only through `requireStaff()` /
   `runAction(minRole, …)` and the staff member's own client (`staff.db`), so RLS applies.
   Never use the secret key in CRM code except for Auth admin calls that create logins:

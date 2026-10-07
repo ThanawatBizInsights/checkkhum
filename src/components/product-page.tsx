@@ -3,13 +3,14 @@ import { CheckMark, Dash, productIcons } from "./icons";
 import { QuoteForm } from "./quote-form";
 import { ContactBand, ProductOverview } from "./sections";
 
-function TierTable({ product }: { product: Product }) {
+/** Tier comparison table (car insurance); also used on the homepage. */
+export function TierTable({ product, caption = "เทียบความคุ้มครองแต่ละชั้น" }: { product: Product; caption?: string }) {
   if (!product.tiers) return null;
   const heads = ["ชั้น 1", "ชั้น 2+", "ชั้น 3+"];
   return (
     <div className="mt-8">
       <table className="w-full table-fixed border-collapse text-left">
-        <caption className="mb-3 text-left font-display text-xl font-semibold text-navy">เทียบความคุ้มครองแต่ละชั้น</caption>
+        <caption className="mb-3 text-left font-display text-xl font-semibold text-navy">{caption}</caption>
         <thead>
           <tr className="border-b-2 border-navy">
             <th scope="col" className="py-3 pr-4 font-semibold text-ink-soft">

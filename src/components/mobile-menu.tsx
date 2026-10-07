@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { MobileAccountLinks } from "./account-menu";
 import { NavLinks } from "./nav-links";
 
 export function MobileMenu() {
@@ -40,7 +39,6 @@ export function MobileMenu() {
           linkClassName="block border-b border-line py-3 text-lg font-semibold text-navy"
           onNavigate={() => setOpen(false)}
         />
-        <MobileAccountLinks onNavigate={() => setOpen(false)} />
       </nav>
     </div>
   );

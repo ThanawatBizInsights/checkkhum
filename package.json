@@ -19,6 +19,7 @@
     "verify:crm": "node scripts/verify-crm.mjs",
     "verify:portal": "node scripts/verify-portal.mjs",
     "verify:line": "node scripts/verify-line.mjs",
+    "verify:journey": "node scripts/verify-quote-journey.mjs",
     "audit": "node scripts/audit-site.mjs"
   },
   "engines": {

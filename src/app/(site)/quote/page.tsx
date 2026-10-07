@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
 import { ContactChannels } from "@/components/contact-channels";
 import { QuoteForm } from "@/components/quote-form";
+import { processSteps as steps } from "@/content/journey";
 import { findPlan } from "@/content/products";
 
 export const metadata: Metadata = {
   title: "ขอใบเสนอราคา",
-  description: "ขอใบเสนอราคาประกันรถยนต์ ประกันรถ EV พ.ร.บ. และประกันเดินทาง เราเทียบแผนจากหลายบริษัทให้ ไม่มีค่าใช้จ่าย",
+  description: "ขอใบเสนอราคาประกันรถยนต์ ประกันรถ EV พ.ร.บ. และประกันเดินทาง ไม่ต้องสมัครสมาชิก ทีมงานติดต่อกลับพร้อมใบเสนอราคา",
 };
 
-const steps = [
-  { title: "คุณส่งคำขอ", body: "บอกประเภทประกันและข้อมูลรถหรือทริปของคุณ" },
-  { title: "เราเทียบแผนให้", body: "รวบรวมเบี้ยและความคุ้มครองจากหลายบริษัท แล้วสรุปความต่างให้อ่านง่าย" },
-  { title: "คุณเลือกแผนที่คุ้ม", body: "ถามได้ทุกข้อก่อนตัดสินใจ ไม่มีข้อผูกมัด" },
-];
+
 
 export default async function QuotePage({ searchParams }: { searchParams: Promise<{ plan?: string | string[] }> }) {
   const { plan } = await searchParams;

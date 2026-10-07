@@ -4,9 +4,8 @@ import { createUserClient } from "@/lib/server/supabase-user";
 export const dynamic = "force-dynamic";
 
 /**
- * Whether the visitor is signed in, for the public header's account menu.
- * Public pages stay static; the header asks this after load. Returns only
- * the kind of account, never names, emails or ids.
+ * Whether the visitor is signed in (kept for when the portal returns to the navigation).
+ * Returns only the kind of account, never names, emails or ids.
  */
 export async function GET() {
   const headers = { "Cache-Control": "private, no-store" };

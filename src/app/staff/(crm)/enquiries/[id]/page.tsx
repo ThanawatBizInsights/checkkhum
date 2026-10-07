@@ -31,6 +31,7 @@ import {
 } from "@/lib/crm-labels";
 import { insurerOptions, openTasks, staffOptions } from "@/lib/server/crm/queries";
 import { requireStaff } from "@/lib/server/staff-auth";
+import { evChargerLabels, renewalTimingLabels, repairLabels, usageLabels, vehicleTypeLabels } from "@/content/quote-options";
 
 export const metadata: Metadata = { title: "รายละเอียดคำขอ" };
 
@@ -45,7 +46,7 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
 
   const { data: e } = await staff.db
     .from("enquiries")
-    .select("*, customers(id, full_name, phone, line_id, preferred_channel), vehicles(id, description, model_year, registration_plate, is_ev), staff_users(full_name)")
+    .select("*, customers(id, full_name, phone, line_id, preferred_channel), vehicles(id, description, make, model, model_year, registration_plate, is_ev), staff_users(full_name)")
     .eq("id", id)
     .maybeSingle();
   if (!e) notFound();
@@ -135,6 +136,8 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
                   : []),
                 ["เข้ามาเมื่อ", formatDateTime(e.created_at)],
                 ...(e.vehicles ? [["รถ", `${e.vehicles.description}${e.vehicles.model_year ? ` ปี ${e.vehicles.model_year}` : ""}${e.vehicles.is_ev ? " (EV)" : ""}`] as [string, string]] : []),
+                ...(e.renewal_timing ? [["ต้องการความคุ้มครอง", renewalTimingLabels[e.renewal_timing] ?? e.renewal_timing] as [string, string]] : []),
+                ...detailRows(e.details),
                 ...(e.travel_destination ? [["ปลายทาง", `${e.travel_destination}${e.travel_days ? `, ${e.travel_days} วัน` : ""}${e.travellers ? `, ${e.travellers} คน` : ""}`] as [string, string]] : []),
                 ...(e.message ? [["ข้อความจากลูกค้า", e.message] as [string, string]] : []),
               ]}
@@ -301,4 +304,17 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
       </div>
     </>
   );
+}
+
+/** Product-specific answers from the quote form, in staff-readable Thai. */
+function detailRows(details: unknown): [string, string][] {
+  if (!details || typeof details !== "object") return [];
+  const d = details as Record<string, string>;
+  const rows: [string, string][] = [];
+  if (d.vehicle_type) rows.push(["ประเภทรถ", vehicleTypeLabels[d.vehicle_type] ?? d.vehicle_type]);
+  if (d.usage) rows.push(["การใช้รถ", usageLabels[d.usage] ?? d.usage]);
+  if (d.repair) rows.push(["การซ่อมที่ต้องการ", repairLabels[d.repair] ?? d.repair]);
+  if (d.ev_home_charger) rows.push(["เครื่องชาร์จที่บ้าน", evChargerLabels[d.ev_home_charger] ?? d.ev_home_charger]);
+  if (d.trip_start) rows.push(["วันเริ่มเดินทาง", formatDate(d.trip_start)]);
+  return rows;
 }

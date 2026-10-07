@@ -41,26 +41,27 @@ function Channel({
 export function ContactChannels({ tone = "dark", showEmail = false }: { tone?: "dark" | "light"; showEmail?: boolean }) {
   return (
     <div>
+      {/* Only configured channels are shown; nothing placeholder-like reaches the public. */}
       <ul className="grid gap-3.5">
-        <Channel icon={PhoneIcon} label="โทร" channel={phoneChannel} tone={tone} />
-        <Channel icon={LineIcon} label="LINE" channel={lineChannel} tone={tone} />
-        {showEmail && <Channel icon={MailIcon} label="อีเมล" channel={emailChannel} tone={tone} />}
+        {phoneChannel.href && <Channel icon={PhoneIcon} label="โทร" channel={phoneChannel} tone={tone} />}
+        {lineChannel.href && <Channel icon={LineIcon} label="LINE" channel={lineChannel} tone={tone} />}
+        {showEmail && emailChannel.href && <Channel icon={MailIcon} label="อีเมล" channel={emailChannel} tone={tone} />}
       </ul>
-      <p className={`mt-4 text-[0.9375rem] ${tone === "dark" ? "text-paper/80" : "text-ink-soft"}`}>เวลาทำการ: {hoursText}</p>
+      {hoursText && (
+        <p className={`mt-4 text-[0.9375rem] ${tone === "dark" ? "text-paper/80" : "text-ink-soft"}`}>เวลาทำการ: {hoursText}</p>
+      )}
     </div>
   );
 }
 
+/** LINE QR code; renders nothing until a QR image is configured. */
 export function LineQr({ tone = "dark" }: { tone?: "dark" | "light" }) {
   const src = siteConfig.contact.lineQrImage;
+  if (!src) return null;
   return (
     <figure className="m-0">
       <div className={`grid size-40 place-items-center rounded-2xl bg-paper p-2.5 ${tone === "light" ? "border border-line" : ""}`}>
-        {src ? (
-          <Image src={src} width={140} height={140} alt="QR code สำหรับเพิ่มเพื่อนทาง LINE" className="size-full object-contain" />
-        ) : (
-          <span className="text-center text-[0.9375rem] text-ink-soft">พื้นที่สำหรับ QR LINE</span>
-        )}
+        <Image src={src} width={140} height={140} alt="QR code สำหรับเพิ่มเพื่อนทาง LINE" className="size-full object-contain" />
       </div>
       <figcaption className={`mt-2 text-[0.9375rem] ${tone === "dark" ? "text-paper/85" : "text-ink-soft"}`}>สแกนเพื่อเพิ่มเพื่อนทาง LINE</figcaption>
     </figure>
