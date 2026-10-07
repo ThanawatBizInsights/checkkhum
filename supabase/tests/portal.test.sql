@@ -2,7 +2,7 @@
 -- Run with: npx supabase test db   (uses the fictional seed)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(56);
+select plan(57);
 
 create or replace function pg_temp.act_as(p_role text, p_user uuid default null)
 returns void language plpgsql as $$
@@ -135,7 +135,8 @@ reset role;
 -- Outsider (signed in, no invitation) gets nothing.
 select pg_temp.act_as('authenticated', '11111111-1111-4111-8111-111111111105');
 select is(public.accept_customer_invitation(), 'none', 'no invitation, no link');
-select is(public.portal_overview(), null, 'unlinked user has no overview');
+select is(public.portal_overview() ->> 'linked', 'false', 'unlinked user: overview says not linked');
+select is(jsonb_array_length(public.portal_overview() -> 'policies'), 0, 'unlinked user sees no policies');
 reset role;
 
 -- An invitation for the outsider's address links only after email is verified.

@@ -24,7 +24,11 @@ insert into auth.users (instance_id, id, aud, role, email, encrypted_password, e
                         email_change_token_current, phone_change, phone_change_token, reauthentication_token)
 select '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
        extensions.crypt('checkkhum-local-only', extensions.gen_salt('bf')), now(),
-       '{"provider":"email","providers":["email"]}', '{}', now(), now(),
+       -- Staff logins carry the marker admins' createStaffUser sets, so they get no customer profile.
+       case when u.email in ('customer-a@checkkhum.example', 'customer-b@checkkhum.example', 'outsider@checkkhum.example')
+            then '{"provider":"email","providers":["email"]}'
+            else '{"provider":"email","providers":["email"],"checkkhum_staff":true}' end::jsonb,
+       '{}', now(), now(),
        '', '', '', '', '', '', '', ''
   from seed_users u;
 

@@ -19,17 +19,24 @@ export function FormField({
   id,
   label,
   hint,
+  error,
   ...input
-}: { id: string; label: string; hint?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: { id: string; label: string; hint?: string; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") || undefined;
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 block font-semibold text-navy">
         {label}
       </label>
-      <input id={id} className="field-input" aria-describedby={hint ? `${id}-hint` : undefined} {...input} />
+      <input id={id} className="field-input" aria-describedby={describedBy} aria-invalid={error ? true : undefined} {...input} />
       {hint && (
         <p id={`${id}-hint`} className="mt-1 text-[0.9375rem] text-ink-soft">
           {hint}
+        </p>
+      )}
+      {error && (
+        <p id={`${id}-error`} className="mt-1 text-[0.9375rem] text-error">
+          {error}
         </p>
       )}
     </div>

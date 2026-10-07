@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { siteConfig } from "@/config/site";
 import {
@@ -11,6 +12,7 @@ import {
 import { countLinks, enquirySchema, fieldErrors, planToProduct } from "@/lib/server/enquiry-validation";
 import { getBackendConfig, getTurnstileSecret } from "@/lib/server/env";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
+import { createUserClient } from "@/lib/server/supabase-user";
 
 /**
  * POST /api/enquiries: the only way a public visitor can create data.
@@ -152,6 +154,17 @@ export async function POST(request: NextRequest) {
     if (error) throw new Error(`submit_enquiry failed: ${error.code ?? ""} ${error.message}`);
 
     const result = data as { reference: string; duplicate: boolean; duplicate_reason: string | null };
+
+    // Signed-in customer: show this request in their account. The user id
+    // comes from the verified session, never from the request body; the
+    // database ignores staff and old or already-attributed enquiries.
+    if (!result.duplicate) {
+      const userId = await signedInUserId();
+      if (userId) {
+        const { error: attachError } = await db.rpc("record_enquiry_submitter", { p_reference: result.reference, p_user: userId });
+        if (attachError) console.error(`[enquiries] could not attach ${result.reference} to its account: ${attachError.code ?? ""}`);
+      }
+    }
     console.info(`[enquiries] ${result.duplicate ? `duplicate (${result.duplicate_reason})` : "stored"} ${result.reference}`);
     return NextResponse.json(
       { ok: true, mode: "database", reference: result.reference, duplicate: result.duplicate },
@@ -161,4 +174,14 @@ export async function POST(request: NextRequest) {
     console.error(`[enquiries] ${err instanceof Error ? err.message : "unknown error"}`);
     return fail(500, "server_error", GENERIC_REJECTION);
   }
+}
+
+/** The signed-in user's id (verified with Supabase Auth), or null for visitors. */
+async function signedInUserId(): Promise<string | null> {
+  const store = await cookies();
+  if (!store.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"))) return null;
+  const userDb = await createUserClient();
+  if (!userDb) return null;
+  const { data } = await userDb.auth.getUser();
+  return data.user?.id ?? null;
 }

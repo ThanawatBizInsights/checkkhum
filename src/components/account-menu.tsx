@@ -113,6 +113,12 @@ export function AccountMenu() {
                 </Link>
               </li>
             </ul>
+            <p className="mt-1 border-t border-line px-3 pt-2 text-[0.9375rem] text-ink-soft">
+              ลูกค้าใหม่?{" "}
+              <Link href="/customer/register" className="inline-flex min-h-11 items-center font-semibold text-teal-ink underline underline-offset-4" onClick={() => setOpen(false)}>
+                สมัครสมาชิก
+              </Link>
+            </p>
           </>
         )}
       </div>
@@ -148,6 +154,12 @@ export function MobileAccountLinks({ onNavigate }: { onNavigate?: () => void }) 
               เจ้าหน้าที่
             </Link>
           </div>
+          <p className="mt-2 text-ink-soft">
+            ลูกค้าใหม่?{" "}
+            <Link href="/customer/register" onClick={onNavigate} className="inline-flex min-h-11 items-center font-semibold text-teal-ink underline underline-offset-4">
+              สมัครสมาชิก
+            </Link>
+          </p>
         </>
       )}
     </div>

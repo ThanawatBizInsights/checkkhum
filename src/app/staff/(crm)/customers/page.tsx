@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createCustomer } from "@/app/staff/_actions/crm";
 import { ActionForm } from "@/components/staff/action-form";
+import { OnlineAccountsSheet } from "@/components/staff/portal-sheets";
 import { Empty, Field, PageTitle, Select, Sheet } from "@/components/staff/ui";
 import { channelLabels, formatDate, formatPhone } from "@/lib/crm-labels";
 import { requireStaff } from "@/lib/server/staff-auth";
@@ -74,6 +75,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             </ActionForm>
           </Sheet>
         )}
+        <OnlineAccountsSheet staff={staff} />
       </div>
     </>
   );

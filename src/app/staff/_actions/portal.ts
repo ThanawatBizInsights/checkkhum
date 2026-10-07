@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { z } from "zod";
 import { ActionFailure, check, f, runAction, type ActionResult } from "@/lib/server/crm/action";
 import { getBackendConfig } from "@/lib/server/env";
+import { requestOrigin } from "@/lib/server/origin";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 
 /*
@@ -12,12 +12,6 @@ import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
  * minimum role and writes through the staff member's own client, so RLS
  * applies (invitations and documents: agents and admins; unlinking: admins).
  */
-
-async function siteOrigin(): Promise<string | undefined> {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  return host ? `${h.get("x-forwarded-proto") ?? "https"}://${host}` : undefined;
-}
 
 export async function inviteCustomer(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const schema = z.object({
@@ -52,7 +46,7 @@ export async function inviteCustomer(_prev: ActionResult, formData: FormData): P
     // Sending the email needs the Auth admin API (secret key). Only reached
     // after the caller's role was checked and the invitation was accepted by RLS.
     const admin = getSupabaseAdmin(config.supabaseUrl, config.secretKey);
-    const origin = await siteOrigin();
+    const origin = await requestOrigin();
     const { error } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo: origin ? `${origin}/customer/auth/confirm` : undefined,
     });

@@ -9,9 +9,9 @@ import { requireCustomer } from "@/lib/server/customer-auth";
 
 export const metadata: Metadata = { title: "บัญชีของฉัน", robots: { index: false, follow: false } };
 
-export default async function CustomerDashboard({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
+export default async function CustomerDashboard({ searchParams }: { searchParams: Promise<{ welcome?: string; verified?: string }> }) {
   const customer = await requireCustomer();
-  const { welcome } = await searchParams;
+  const { welcome, verified } = await searchParams;
 
   const [{ data: overviewData }, { data: docs }] = await Promise.all([
     customer.db.rpc("portal_overview"),
@@ -20,27 +20,8 @@ export default async function CustomerDashboard({ searchParams }: { searchParams
   ]);
   const overview = overviewData as PortalOverview | null;
 
-  if (!customer.linked || !overview) {
-    return (
-      <section className="bg-sky py-10 md:py-16">
-        <div className="wrap max-w-[760px]">
-          <h1 className="text-[clamp(1.75rem,1.4rem+1.4vw,2.4rem)] leading-tight">บัญชีของฉัน</h1>
-          <div className="mt-5 rounded-[var(--radius-panel)] border-2 border-navy bg-paper px-5 py-7 md:p-8">
-            <h2 className="text-[1.35rem]">ยังไม่พบข้อมูลประกันในบัญชีนี้</h2>
-            <p className="mt-2 max-w-[38em]">
-              บัญชี {customer.email} เข้าสู่ระบบได้แล้ว แต่ยังไม่ได้เชื่อมกับข้อมูลลูกค้าของเช็กคุ้ม ทีมงานเชื่อมให้ได้เมื่อส่งคำเชิญมาที่อีเมลนี้
-              แจ้งชื่อและเบอร์โทรทาง LINE แล้วทีมงานจะตรวจสอบให้
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <LineButton>ติดต่อทีมงานผ่าน LINE</LineButton>
-              <ButtonLink href="/quote" variant="quiet">
-                ขอใบเสนอราคา
-              </ButtonLink>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
+  if (!customer.linked || !overview?.linked) {
+    return <NewCustomer overview={overview} email={customer.email} verified={!!verified} />;
   }
 
   const docsByPolicy = new Map<string, PortalDocument[]>();
@@ -97,30 +78,7 @@ export default async function CustomerDashboard({ searchParams }: { searchParams
           <h2 id="requests-title" className="text-[1.5rem]">
             คำขอของฉัน
           </h2>
-          {overview.enquiries.length ? (
-            <ul className="mt-4 divide-y divide-line rounded-[var(--radius-panel)] border-[1.5px] border-line bg-paper">
-              {overview.enquiries.map((e) => (
-                <li key={e.reference} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 md:px-5">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-navy">
-                      {e.renewal_policy_id ? "ขอต่ออายุ" : e.type === "quote" ? "ขอใบเสนอราคา" : "ติดต่อสอบถาม"}
-                      {e.product ? `, ${productLabels[e.product]}` : ""}
-                    </p>
-                    <p className="text-[0.9375rem] text-ink-soft">
-                      เลขอ้างอิง {e.reference}, ส่งเมื่อ {formatDate(e.created_at)}
-                    </p>
-                  </div>
-                  <StatusChip done={e.status === "won"} closed={e.status === "lost"}>
-                    {customerEnquiryStatus[e.status]}
-                  </StatusChip>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Empty>
-              ยังไม่มีคำขอ <Link href="/quote" className="font-semibold text-teal-ink underline underline-offset-4">ขอใบเสนอราคา</Link> ได้ตลอดเวลา
-            </Empty>
-          )}
+          <EnquiryList enquiries={overview.enquiries} />
         </section>
 
         <section aria-labelledby="quotes-title">
@@ -219,4 +177,91 @@ function Empty({ children }: { children: React.ReactNode }) {
 function StatusChip({ children, done, closed }: { children: React.ReactNode; done?: boolean; closed?: boolean }) {
   const tone = done ? "bg-teal text-paper" : closed ? "bg-line text-ink-soft" : "bg-mint text-teal-ink";
   return <span className={`inline-flex whitespace-nowrap rounded-full px-3 py-0.5 text-[0.9375rem] font-semibold ${tone}`}>{children}</span>;
+}
+
+function EnquiryList({ enquiries }: { enquiries: PortalOverview["enquiries"] }) {
+  return (
+    <>
+    {enquiries.length ? (
+      <ul className="mt-4 divide-y divide-line rounded-[var(--radius-panel)] border-[1.5px] border-line bg-paper">
+        {enquiries.map((e) => (
+          <li key={e.reference} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 md:px-5">
+            <div className="min-w-0">
+              <p className="font-semibold text-navy">
+                {e.renewal_policy_id ? "ขอต่ออายุ" : e.type === "quote" ? "ขอใบเสนอราคา" : "ติดต่อสอบถาม"}
+                {e.product ? `, ${productLabels[e.product]}` : ""}
+              </p>
+              <p className="text-[0.9375rem] text-ink-soft">
+                เลขอ้างอิง {e.reference}, ส่งเมื่อ {formatDate(e.created_at)}
+              </p>
+            </div>
+            <StatusChip done={e.status === "won"} closed={e.status === "lost"}>
+              {customerEnquiryStatus[e.status]}
+            </StatusChip>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <Empty>
+        ยังไม่มีคำขอ <Link href="/quote" className="font-semibold text-teal-ink underline underline-offset-4">ขอใบเสนอราคา</Link> ได้ตลอดเวลา
+      </Empty>
+    )}
+    </>
+  );
+}
+
+/**
+ * A login without a linked CRM customer: usually someone who just registered.
+ * Shows their own requests and the way forward; never anyone's policies.
+ */
+function NewCustomer({ overview, email, verified }: { overview: PortalOverview | null; email: string; verified: boolean }) {
+  const name = overview?.customer.full_name;
+  const enquiries = overview?.enquiries ?? [];
+  return (
+    <>
+      <section className="border-b border-line bg-sky py-8 md:py-12">
+        <div className="wrap">
+          <h1 className="text-[clamp(1.75rem,1.4rem+1.4vw,2.4rem)] leading-tight">{name ? `ยินดีต้อนรับ คุณ${name}` : "บัญชีของฉัน"}</h1>
+          <p className="mt-2 max-w-[38em] text-ink-soft">บัญชี {email}</p>
+          {verified && (
+            <p role="status" className="mt-3 inline-block rounded-[var(--radius-control)] bg-mint px-3 py-1.5 text-[0.9375rem] text-teal-ink">
+              ยืนยันอีเมลแล้ว ครั้งต่อไปเข้าสู่ระบบด้วยอีเมลและรหัสผ่านที่ตั้งไว้
+            </p>
+          )}
+        </div>
+      </section>
+
+      <div className="wrap grid gap-10 py-10">
+        <section aria-labelledby="start-title" className="rounded-[var(--radius-panel)] border-2 border-navy bg-paper px-5 py-7 md:p-8">
+          <h2 id="start-title" className="text-[1.5rem]">
+            {enquiries.length ? "ขอใบเสนอราคาเพิ่ม" : "เริ่มจากขอใบเสนอราคา"}
+          </h2>
+          <p className="mt-2 max-w-[38em]">
+            บอกรุ่นรถหรือแผนเดินทาง เราจะเทียบแผนจากหลายบริษัทให้ ไม่มีค่าใช้จ่าย คำขอที่ส่งตอนเข้าสู่ระบบอยู่จะแสดงสถานะที่หน้านี้
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <ButtonLink href="/quote">ขอใบเสนอราคา</ButtonLink>
+            <LineButton>คุยกับทีมงานผ่าน LINE</LineButton>
+          </div>
+        </section>
+
+        <section aria-labelledby="requests-title">
+          <h2 id="requests-title" className="text-[1.5rem]">
+            คำขอของฉัน
+          </h2>
+          <EnquiryList enquiries={enquiries} />
+        </section>
+
+        <section aria-labelledby="existing-title">
+          <h2 id="existing-title" className="text-[1.5rem]">
+            กรมธรรม์ของฉัน
+          </h2>
+          <Empty>
+            ยังไม่มีกรมธรรม์ในบัญชีนี้ เคยทำประกันกับเช็กคุ้มแล้ว? แจ้งชื่อและเบอร์โทรทาง LINE ทีมงานจะตรวจสอบ แล้วส่งคำเชิญไปที่อีเมลนี้
+            เพื่อเชื่อมกรมธรรม์ เอกสาร และวันต่ออายุเข้ากับบัญชีของคุณ
+          </Empty>
+        </section>
+      </div>
+    </>
+  );
 }

@@ -18,7 +18,7 @@ export default async function CustomerLoginPage({ searchParams }: { searchParams
   return (
     <AuthCard
       title="เข้าสู่ระบบลูกค้า"
-      intro="ดูใบเสนอราคา กรมธรรม์ และวันต่ออายุของคุณ บัญชีลูกค้าเปิดให้โดยทีมงาน ทางอีเมลเชิญ"
+      intro="ดูคำขอ ใบเสนอราคา กรมธรรม์ และวันต่ออายุของคุณ"
     >
       {state.kind === "unconfigured" ? (
         <NotConnected />
@@ -33,15 +33,23 @@ export default async function CustomerLoginPage({ searchParams }: { searchParams
             <FormField id="email" name="email" type="email" label="อีเมล" autoComplete="username" required />
             <FormField id="password" name="password" type="password" label="รหัสผ่าน" autoComplete="current-password" required />
           </ActionForm>
-          <p className="mt-4">
+          <p className="mt-4 flex flex-wrap gap-x-6">
             <Link href="/customer/forgot-password" className="inline-flex min-h-11 items-center font-semibold text-teal-ink underline underline-offset-4">
               ลืมรหัสผ่าน
+            </Link>
+            <Link href="/customer/verify-email" className="inline-flex min-h-11 items-center font-semibold text-teal-ink underline underline-offset-4">
+              ส่งอีเมลยืนยันอีกครั้ง
             </Link>
           </p>
         </>
       )}
       <div className="mt-6 border-t border-line pt-5">
-        <p className="text-[0.9375rem] text-ink-soft">ยังไม่มีบัญชี ขอให้ทีมงานส่งคำเชิญทาง LINE</p>
+        <p className="text-lg">
+          ยังไม่มีบัญชี?{" "}
+          <Link href="/customer/register" className="inline-flex min-h-11 items-center font-display font-semibold text-teal-ink underline underline-offset-4">
+            สมัครสมาชิก
+          </Link>
+        </p>
         <div className="mt-3 flex flex-wrap gap-3">
           <LineButton size="sm">ติดต่อทีมงานผ่าน LINE</LineButton>
         </div>

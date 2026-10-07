@@ -151,3 +151,54 @@ export async function PolicyDocumentsSheet({ staff, policyId }: { staff: StaffCo
     </Sheet>
   );
 }
+
+const profileSource: Record<string, string> = {
+  self_registration: "สมัครเอง",
+  invitation: "คำเชิญ",
+  other: "อื่น ๆ",
+};
+
+/** Customers page: newest online accounts, and whether each is linked to a CRM customer yet. */
+export async function OnlineAccountsSheet({ staff }: { staff: StaffContext }) {
+  const db: Db = staff.db;
+  const [{ data: profiles }, { data: links }] = await Promise.all([
+    db.from("customer_profiles").select("user_id, full_name, email, source, created_at").order("created_at", { ascending: false }).limit(15),
+    db.from("customer_accounts").select("user_id, customer_id"),
+  ]);
+  const linkedTo = new Map((links ?? []).map((l) => [l.user_id, l.customer_id]));
+
+  return (
+    <Sheet title="บัญชีลูกค้าออนไลน์ล่าสุด" id="online-title">
+      <p className="text-[0.9375rem] text-ink-soft">
+        ลูกค้าที่สมัครเองเห็นเฉพาะคำขอที่ส่งตอนเข้าสู่ระบบ จะเห็นกรมธรรม์และเอกสารเมื่อทีมงานส่งคำเชิญจากหน้าข้อมูลลูกค้า
+        ไปที่อีเมลนี้ (ยืนยันกับลูกค้าก่อนว่าเป็นอีเมลของเขา)
+      </p>
+      {profiles?.length ? (
+        <ul className="mt-3 divide-y divide-line">
+          {profiles.map((p) => {
+            const customerId = linkedTo.get(p.user_id);
+            return (
+              <li key={p.user_id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                <div className="min-w-0">
+                  <p className="font-semibold text-navy">{p.full_name}</p>
+                  <p className="break-all text-[0.9375rem] text-ink-soft">
+                    {p.email}, {profileSource[p.source] ?? p.source} {formatDate(p.created_at)}
+                  </p>
+                </div>
+                {customerId ? (
+                  <a href={`/staff/customers/${customerId}`} className="font-semibold text-teal-ink underline underline-offset-4">
+                    เชื่อมแล้ว เปิดข้อมูลลูกค้า
+                  </a>
+                ) : (
+                  <Pill tone="warn">ยังไม่เชื่อมข้อมูล</Pill>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <Empty>ยังไม่มีบัญชีออนไลน์</Empty>
+      )}
+    </Sheet>
+  );
+}

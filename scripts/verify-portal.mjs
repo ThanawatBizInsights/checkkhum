@@ -469,7 +469,8 @@ console.log("\n# Customer B and an unlinked login");
   await Bc.ctx.close();
 
   const out = await customerLogin("outsider@checkkhum.example");
-  ok((await out.p.getByRole("heading", { name: "ยังไม่พบข้อมูลประกันในบัญชีนี้" }).count()) === 1, "unlinked login: helpful empty state");
+  ok((await out.p.locator("h1").innerText()).includes("ยินดีต้อนรับ") && (await out.p.getByText("ยังไม่มีกรมธรรม์ในบัญชีนี้").count()) === 1,
+    "unlinked login: helpful empty state");
   ok((await out.p.locator(`a[href="${LINE_URL}"]`).count()) > 0, "unlinked login: LINE contact button");
   ok(sql(`select count(*) from public.customer_accounts where user_id = '11111111-1111-4111-8111-111111111105'`) === "0", "unlinked login is not linked by typing an email");
   await out.ctx.close();
@@ -484,6 +485,215 @@ console.log("\n# Staff and customer logins stay separate");
   const acct = await (await s.p.request.get(`${B}/api/account`)).json();
   ok(acct.state === "staff", "/api/account reports staff");
   await s.ctx.close();
+}
+
+// ===========================================================================
+console.log("\n# Self-registration");
+const REG_A = "reg-a@checkkhum.example";
+const REG_B = "reg-b@checkkhum.example";
+const REG_CLAIM = "claim-attempt@checkkhum.example";
+const REG_PASSWORD = "สมัครเองรหัสผ่าน-2569";
+/** All verification links sent to `to`, newest first. */
+async function allMailLinks(to) {
+  const list = (await (await fetch(`${MAIL}/api/v1/search?query=${encodeURIComponent(`to:"${to}"`)}`)).json()).messages ?? [];
+  const links = [];
+  for (const m of list) {
+    const msg = await (await fetch(`${MAIL}/api/v1/message/${m.ID}`)).json();
+    const found = (msg.HTML ?? "").match(/href="([^"]*\/customer\/auth\/confirm[^"]*)"/);
+    if (found) links.push({ url: found[1].replaceAll("&amp;", "&"), subject: msg.Subject });
+  }
+  return links;
+}
+async function waitForMails(to, n) {
+  for (let i = 0; i < 40; i++) {
+    const links = await allMailLinks(to);
+    if (links.length >= n) return links;
+    await sleep(500);
+  }
+  return allMailLinks(to);
+}
+async function register(p, { name, email, password = REG_PASSWORD, confirm = password, privacy = true }) {
+  await p.goto(`${B}/customer/register`);
+  await p.fill("#full_name", name);
+  await p.fill("#email", email);
+  await p.fill("#password", password);
+  await p.fill("#confirm", confirm);
+  if (privacy) await p.check("#privacy");
+  await p.locator("main form").getByRole("button", { name: "สมัครสมาชิก" }).click();
+}
+const staffBefore = sql("select count(*) from public.staff_users");
+{
+  const { ctx, p } = await newPage(390);
+  await p.goto(`${B}/customer/login`);
+  const regLink = p.locator("main").getByRole("link", { name: "สมัครสมาชิก" });
+  ok((await regLink.getAttribute("href")) === "/customer/register" && (await p.getByText("ยังไม่มีบัญชี?").count()) === 1,
+    "login page: “ยังไม่มีบัญชี? สมัครสมาชิก” links to /customer/register");
+  ok((await p.getByText("ขอให้ทีมงานส่งคำเชิญ").count()) === 0, "invitation-only message removed");
+  await regLink.click();
+  await p.waitForURL(`${B}/customer/register`);
+  ok((await p.locator("h1").innerText()) === "สมัครสมาชิก", "register page opens");
+  ok((await p.locator("main").getByRole("link", { name: "เข้าสู่ระบบ" }).getAttribute("href")) === "/customer/login", "register page links back to login");
+  ok((await p.evaluate(() => document.documentElement.scrollWidth)) <= 390, "register page: no horizontal scroll at 390px");
+  await p.screenshot({ path: "/tmp/register-mobile.png", fullPage: true });
+
+  // Validation: kept values, field errors tied to fields.
+  await register(p, { name: "ทดสอบ สมัครเอ", email: REG_A, password: "short", confirm: "other", privacy: false });
+  await p.locator("main [role=alert]").waitFor();
+  ok((await p.inputValue("#full_name")) === "ทดสอบ สมัครเอ" && (await p.inputValue("#email")) === REG_A, "name and email kept after a validation error");
+  ok((await p.locator("#password").getAttribute("aria-invalid")) === "true" && (await p.locator("#password-error").innerText()).includes("10 ตัวอักษร"),
+    "short password: error tied to the field");
+  ok((await p.locator("#confirm-error").innerText()).includes("ไม่ตรงกัน"), "mismatched confirmation reported");
+  ok((await p.locator("#privacy-error").innerText()).includes("ประกาศความเป็นส่วนตัว"), "privacy acknowledgement required");
+  ok(sql(`select count(*) from auth.users where email = '${REG_A}'`) === "0", "nothing created on a validation error");
+
+  // Successful registration.
+  await register(p, { name: "ทดสอบ สมัครเอ", email: REG_A });
+  await p.getByText("ตรวจอีเมลเพื่อยืนยันการสมัคร").waitFor();
+  ok((await p.locator("[role=status]").first().innerText()).includes(REG_A), "Thai confirmation message names the email");
+  ok(sql(`select (email_confirmed_at is null)::text from auth.users where email = '${REG_A}'`) === "true", "login created, email not yet verified");
+  ok(sql(`select source || '/' || full_name || '/' || (privacy_acknowledged_at is not null) from public.customer_profiles p join auth.users u on u.id = p.user_id where u.email = '${REG_A}'`) === "self_registration/ทดสอบ สมัครเอ/true",
+    "customer profile created with name and privacy acknowledgement");
+  const first = await waitForMails(REG_A, 1);
+  ok(first.length === 1 && first[0].url.includes("type=email"), `verification email sent (${first[0]?.subject})`);
+
+  // Sign-in before verifying is refused with a clear message.
+  const early = await customerLogin(REG_A, REG_PASSWORD);
+  ok((await early.p.locator("main [role=alert]").innerText()).includes("ยังไม่ได้ยืนยันอีเมล"), "login before verification: clear Thai message");
+  await early.ctx.close();
+
+  // Resend, then the old link no longer works and the new one does.
+  await p.getByRole("button", { name: "ส่งอีเมลยืนยันอีกครั้ง" }).click();
+  await p.locator("main form [role=status]").waitFor();
+  const both = await waitForMails(REG_A, 2);
+  ok(both.length === 2, "verification email resent");
+  await p.goto(both[1].url); // the older link
+  await p.waitForURL(/\/customer\/verify-email\?error=expired/);
+  ok((await p.locator("[role=alert]").first().innerText()).includes("หมดอายุ"), "superseded/expired link: Thai message and resend form");
+  await p.goto(both[0].url);
+  await p.waitForURL(`${B}/customer?verified=1`);
+  ok((await p.locator("h1").innerText()).includes("ยินดีต้อนรับ คุณทดสอบ สมัครเอ"), "verified: signed in to the new-customer dashboard");
+  ok((await p.getByText("ยืนยันอีเมลแล้ว").count()) === 1, "verified message shown");
+  ok((await p.locator("section", { has: p.locator("#start-title") }).getByRole("link", { name: "ขอใบเสนอราคา" }).getAttribute("href")) === "/quote", "dashboard: ขอใบเสนอราคา button");
+  ok((await p.getByText("ยังไม่มีกรมธรรม์ในบัญชีนี้").count()) === 1, "dashboard: helpful empty state for policies");
+  await p.screenshot({ path: "/tmp/new-customer-mobile.png", fullPage: true });
+  await p.goto(both[0].url);
+  await p.waitForURL(/\/customer\/verify-email\?error=expired/);
+  ok(true, "a verification link works only once");
+  await ctx.close();
+}
+{
+  // Existing account.
+  const { ctx, p } = await newPage();
+  await register(p, { name: "ซ้ำ", email: REG_A });
+  await p.locator("#email-error").waitFor();
+  ok((await p.locator("main [role=alert]").innerText()).includes("มีบัญชีอยู่แล้ว"), "existing account: Thai message");
+  await register(p, { name: "ซ้ำ", email: "agent@checkkhum.example" });
+  await p.locator("#email-error").waitFor();
+  ok(sql("select count(*) from public.staff_users") === staffBefore, "staff email: no new account, staff unchanged");
+  await ctx.close();
+}
+
+console.log("\n# Registered customer: login, quotation, isolation");
+const regA = await customerLogin(REG_A, REG_PASSWORD);
+ok(regA.p.url() === `${B}/customer`, "registered customer logs in with email and password");
+const regAId = sql(`select id from auth.users where email = '${REG_A}'`);
+let quoteRef;
+{
+  const p = regA.p;
+  await p.goto(`${B}/quote?plan=car-1`);
+  const form = p.locator("main form").first();
+  await form.getByLabel("ยี่ห้อและรุ่นรถ").fill("Mazda 2");
+  await form.getByLabel("ปีรถ (ค.ศ.)").fill("2021");
+  await form.getByLabel("ชื่อที่ให้เราเรียก").fill("ทดสอบ สมัครเอ");
+  await form.getByLabel("เบอร์โทรศัพท์").fill("0899990111");
+  await sleep(3000); // the form's minimum fill time
+  await form.getByRole("button", { name: "ขอใบเสนอราคา" }).click();
+  await p.getByTestId("enquiry-reference").waitFor({ timeout: 15000 });
+  quoteRef = (await p.getByTestId("enquiry-reference").innerText()).trim();
+  ok(/^CK-/.test(quoteRef), `quotation submitted while signed in (${quoteRef})`);
+  ok(sql(`select submitted_by_user_id from public.enquiries where reference = '${quoteRef}'`) === regAId, "enquiry attributed to the signed-in customer");
+  ok(sql(`select status || '/' || source from public.enquiries where reference = '${quoteRef}'`) === "new/web_quote_form", "it reaches the CRM pipeline as a new web enquiry");
+  const statusLink = p.getByRole("link", { name: "ดูสถานะคำขอที่บัญชีของฉัน" });
+  await statusLink.waitFor();
+  await statusLink.click();
+  await p.waitForURL(`${B}/customer`);
+  ok((await p.getByText(`เลขอ้างอิง ${quoteRef}`).count()) === 1, "the request and its status appear in the dashboard");
+  for (const path of ["/staff", "/staff/customers", "/staff/admin"]) {
+    await p.goto(`${B}${path}`);
+    ok(/\/staff\/login\?error=not_staff/.test(p.url()), `registered customer refused at ${path}`);
+  }
+}
+// A second registered account (verified directly through its email link).
+{
+  const { ctx, p } = await newPage();
+  await register(p, { name: "ทดสอบ สมัครบี", email: REG_B });
+  await p.getByText("ตรวจอีเมลเพื่อยืนยันการสมัคร").waitFor();
+  const [link] = await waitForMails(REG_B, 1);
+  await p.goto(link.url);
+  await p.waitForURL(`${B}/customer?verified=1`);
+  ok((await p.getByText(quoteRef).count()) === 0, "customer B does not see A's request");
+  await ctx.close();
+}
+{
+  const jwtA = await token(REG_A, REG_PASSWORD);
+  const jwtB = await token(REG_B, REG_PASSWORD);
+  const profA = await rest("customer_profiles?select=user_id,full_name", jwtA);
+  ok(profA.body?.length === 1 && profA.body[0].user_id === regAId, "REST: A reads only its own profile");
+  const renameB = await rest(`customer_profiles?user_id=eq.${regAId}`, jwtB, { method: "PATCH", body: JSON.stringify({ full_name: "แฮก" }) });
+  ok(Array.isArray(renameB.body) && renameB.body.length === 0, "REST: B cannot rename A");
+  const enqB = await rest("enquiries?select=reference", jwtB);
+  ok(Array.isArray(enqB.body) && enqB.body.length === 0, "REST: B reads no enquiries table rows");
+  const ovB = await rest("rpc/portal_overview", jwtB, { method: "POST", body: "{}" });
+  ok(ovB.body?.linked === false && ovB.body.enquiries.length === 0, "RPC: B's overview has none of A's requests");
+  const ovA = await rest("rpc/portal_overview", jwtA, { method: "POST", body: "{}" });
+  ok(ovA.body?.enquiries?.some((e) => e.reference === quoteRef) && ovA.body.policies.length === 0, "RPC: A sees its request and no policies");
+  for (const [jwt, who] of [[jwtA, "A"], [jwtB, "B"]]) {
+    const staffRows = await rest("staff_users?select=id", jwt);
+    const custRows = await rest("customers?select=id", jwt);
+    const docRows = await rest("policy_documents?select=id", jwt);
+    ok([staffRows, custRows, docRows].every((r) => Array.isArray(r.body) && r.body.length === 0), `REST: registered ${who} reads no staff, customers or documents`);
+    const mkStaff = await rest("staff_users", jwt, { method: "POST", body: JSON.stringify({ id: regAId, email: REG_A, full_name: "x", role: "admin" }) });
+    ok(mkStaff.status >= 400, `REST: registered ${who} cannot create a staff row`);
+    const mkProfile = await rest("customer_profiles", jwt, { method: "POST", body: JSON.stringify({ user_id: regAId, full_name: "x", email: "x", source: "other" }) });
+    ok(mkProfile.status >= 400, `REST: registered ${who} cannot insert profiles`);
+    const attach = await rest("rpc/record_enquiry_submitter", jwt, { method: "POST", body: JSON.stringify({ p_reference: "CK-261001-DEM1", p_user: regAId }) });
+    ok(attach.status >= 400, `RPC: registered ${who} cannot attach enquiries`);
+  }
+  ok(sql("select count(*) from public.staff_users") === staffBefore, "public registration created no staff_users rows");
+  ok(sql(`select count(*) from public.customer_profiles p join public.staff_users s on s.id = p.user_id`) === "0", "no staff login has a customer profile");
+  ok(sql(`select count(*) from public.customer_profiles where user_id = '${regAId}'`) === "1", "exactly one profile per registered login");
+}
+await regA.ctx.close();
+
+console.log("\n# Registration never claims existing records; staff invitation still does");
+{
+  // An existing CRM customer with policies, whose email someone registers with.
+  sql(`update public.customers set email = '${REG_CLAIM}' where id = '33333333-3333-4333-8333-333333333305'`);
+  const { ctx, p } = await newPage();
+  await register(p, { name: "คนที่อ้างเป็นลูกค้า", email: REG_CLAIM });
+  await p.getByText("ตรวจอีเมลเพื่อยืนยันการสมัคร").waitFor();
+  const [link] = await waitForMails(REG_CLAIM, 1);
+  await p.goto(link.url);
+  await p.waitForURL(`${B}/customer?verified=1`);
+  ok((await p.getByText("DEMO-POL-0003").count()) === 0, "verified email matching a CRM customer does NOT reveal their policy");
+  ok(sql(`select count(*) from public.customer_accounts a join auth.users u on u.id = a.user_id where u.email = '${REG_CLAIM}'`) === "0", "and is not linked");
+  await ctx.close();
+
+  // The staff-approved path: an agent invites that customer at that email.
+  const ag = await staffLogin("agent@checkkhum.example");
+  await ag.p.goto(`${B}/staff/customers`);
+  const row = ag.p.locator("li", { hasText: REG_CLAIM });
+  ok((await row.getByText("ยังไม่เชื่อมข้อมูล").count()) === 1, "CRM lists the self-registered account as not linked");
+  await ag.p.goto(`${B}/staff/customers/33333333-3333-4333-8333-333333333305`);
+  const form = ag.p.locator("form", { has: ag.p.locator("#invite-email") });
+  await form.locator("#invite-email").fill(REG_CLAIM);
+  await form.getByRole("button", { name: /ส่งคำเชิญ/ }).click();
+  await form.locator('[role="status"]').waitFor({ timeout: 15000 });
+  ok((await form.locator('[role="status"]').innerText()).includes("มีบัญชีอยู่แล้ว"), "inviting an existing (self-registered) login: clear message to staff");
+  await ag.ctx.close();
+  const c = await customerLogin(REG_CLAIM, REG_PASSWORD);
+  ok((await c.p.getByText("DEMO-POL-0003").count()) === 1, "after the staff invitation the verified login sees that customer's policy");
+  await c.ctx.close();
 }
 
 await browser.close();
