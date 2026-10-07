@@ -2,19 +2,27 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { authCookieOptions } from "@/lib/server/auth-cookies";
 
+/** Customer pages anyone may open (sign-in, reset request, email links). */
+const publicCustomerPaths = new Set(["/customer/login", "/customer/forgot-password", "/customer/auth/confirm"]);
+
 /**
- * Staff area gate. Refreshes the Supabase Auth session cookie and sends
- * signed-out visitors to the login page. This is an optimistic check only:
- * every staff page and server action verifies the user and their staff role
- * again on the server, and row level security enforces permissions in the
- * database.
+ * Gate for the staff CRM (/staff) and the customer portal (/customer).
+ * Refreshes the Supabase Auth session cookie and sends signed-out visitors
+ * to the right login page. This is an optimistic check only: every page,
+ * route handler and server action verifies the user (and their staff role
+ * or customer link) again on the server, and row level security enforces
+ * permissions in the database.
  */
 export async function proxy(request: NextRequest) {
-  const isLogin = request.nextUrl.pathname === "/staff/login";
+  const path = request.nextUrl.pathname;
+  const isCustomerArea = path === "/customer" || path.startsWith("/customer/");
+  const loginPath = isCustomerArea ? "/customer/login" : "/staff/login";
+  const isPublic = isCustomerArea ? publicCustomerPaths.has(path) : path === "/staff/login";
+
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) {
-    return isLogin ? NextResponse.next() : NextResponse.redirect(new URL("/staff/login", request.url));
+    return isPublic ? NextResponse.next() : NextResponse.redirect(new URL(loginPath, request.url));
   }
 
   let response = NextResponse.next({ request });
@@ -31,19 +39,22 @@ export async function proxy(request: NextRequest) {
     },
   });
 
+  // The email-link handler verifies its own token; don't spend a call here.
+  if (path === "/customer/auth/confirm") return response;
+
   const { data } = await supabase.auth.getUser();
-  // Server-action POSTs are not redirected: the action's own requireRole()
-  // refuses them and shows "please sign in again" in the form, instead of
-  // the click silently doing nothing after an expired session.
+  // Server-action POSTs are not redirected: the action's own checks refuse
+  // them and show "please sign in again" in the form, instead of the click
+  // silently doing nothing after an expired session.
   const isServerAction = request.method === "POST" && request.headers.has("next-action");
-  if (!data.user && !isLogin && !isServerAction) {
-    const login = new URL("/staff/login", request.url);
-    if (request.nextUrl.pathname !== "/staff") login.searchParams.set("next", request.nextUrl.pathname);
+  if (!data.user && !isPublic && !isServerAction) {
+    const login = new URL(loginPath, request.url);
+    if (!isCustomerArea && path !== "/staff") login.searchParams.set("next", path);
     return NextResponse.redirect(login);
   }
   return response;
 }
 
 export const config = {
-  matcher: ["/staff", "/staff/:path*"],
+  matcher: ["/staff", "/staff/:path*", "/customer", "/customer/:path*"],
 };

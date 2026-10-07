@@ -49,6 +49,56 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"customer_accounts": {
+                  Row: {
+                    "customer_id": string,"id": string,"invitation_id": string | null,"linked_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "customer_id": string,"id"?: string,"invitation_id"?: string | null,"linked_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "customer_id"?: string,"id"?: string,"invitation_id"?: string | null,"linked_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_accounts_customer_id_fkey"
+      columns: ["customer_id"]
+isOneToOne: true
+      referencedRelation: "customers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_accounts_invitation_id_fkey"
+      columns: ["invitation_id"]
+isOneToOne: false
+      referencedRelation: "customer_invitations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"customer_invitations": {
+                  Row: {
+                    "accepted_at": string | null,"accepted_user_id": string | null,"created_at": string,"customer_id": string,"email": string,"expires_at": string,"id": string,"invited_by": string | null,"revoked_at": string | null
+                  }
+                  Insert: {
+                    "accepted_at"?: string | null,"accepted_user_id"?: string | null,"created_at"?: string,"customer_id": string,"email": string,"expires_at"?: string,"id"?: string,"invited_by"?: string | null,"revoked_at"?: string | null
+                  }
+                  Update: {
+                    "accepted_at"?: string | null,"accepted_user_id"?: string | null,"created_at"?: string,"customer_id"?: string,"email"?: string,"expires_at"?: string,"id"?: string,"invited_by"?: string | null,"revoked_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_invitations_customer_id_fkey"
+      columns: ["customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_invitations_invited_by_fkey"
+      columns: ["invited_by"]
+isOneToOne: false
+      referencedRelation: "staff_users"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"customers": {
                   Row: {
                     "created_at": string,"email": string | null,"full_name": string,"id": string,"line_id": string | null,"notes": string | null,"phone": string | null,"preferred_channel": Database["public"]['Enums']["contact_channel"],"updated_at": string
@@ -64,13 +114,13 @@ isOneToOne: false
                   ]
                 },"enquiries": {
                   Row: {
-                    "assigned_to": string | null,"client_ip_hash": string | null,"contact_name": string,"contact_phone": string,"created_at": string,"customer_id": string,"fingerprint": string | null,"id": string,"idempotency_key": string | null,"message": string | null,"preferred_channel": Database["public"]['Enums']["contact_channel"],"product": Database["public"]['Enums']["insurance_product"] | null,"reference": string,"source": Database["public"]['Enums']["enquiry_source"],"status": Database["public"]['Enums']["enquiry_status"],"travel_days": number | null,"travel_destination": string | null,"travellers": number | null,"type": Database["public"]['Enums']["enquiry_type"],"updated_at": string,"user_agent": string | null,"vehicle_id": string | null
+                    "assigned_to": string | null,"client_ip_hash": string | null,"contact_name": string,"contact_phone": string | null,"created_at": string,"customer_id": string,"fingerprint": string | null,"id": string,"idempotency_key": string | null,"message": string | null,"preferred_channel": Database["public"]['Enums']["contact_channel"],"product": Database["public"]['Enums']["insurance_product"] | null,"reference": string,"renewal_policy_id": string | null,"source": Database["public"]['Enums']["enquiry_source"],"status": Database["public"]['Enums']["enquiry_status"],"travel_days": number | null,"travel_destination": string | null,"travellers": number | null,"type": Database["public"]['Enums']["enquiry_type"],"updated_at": string,"user_agent": string | null,"vehicle_id": string | null
                   }
                   Insert: {
-                    "assigned_to"?: string | null,"client_ip_hash"?: string | null,"contact_name": string,"contact_phone": string,"created_at"?: string,"customer_id": string,"fingerprint"?: string | null,"id"?: string,"idempotency_key"?: string | null,"message"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"product"?: Database["public"]['Enums']["insurance_product"] | null,"reference"?: string,"source": Database["public"]['Enums']["enquiry_source"],"status"?: Database["public"]['Enums']["enquiry_status"],"travel_days"?: number | null,"travel_destination"?: string | null,"travellers"?: number | null,"type": Database["public"]['Enums']["enquiry_type"],"updated_at"?: string,"user_agent"?: string | null,"vehicle_id"?: string | null
+                    "assigned_to"?: string | null,"client_ip_hash"?: string | null,"contact_name": string,"contact_phone"?: string | null,"created_at"?: string,"customer_id": string,"fingerprint"?: string | null,"id"?: string,"idempotency_key"?: string | null,"message"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"product"?: Database["public"]['Enums']["insurance_product"] | null,"reference"?: string,"renewal_policy_id"?: string | null,"source": Database["public"]['Enums']["enquiry_source"],"status"?: Database["public"]['Enums']["enquiry_status"],"travel_days"?: number | null,"travel_destination"?: string | null,"travellers"?: number | null,"type": Database["public"]['Enums']["enquiry_type"],"updated_at"?: string,"user_agent"?: string | null,"vehicle_id"?: string | null
                   }
                   Update: {
-                    "assigned_to"?: string | null,"client_ip_hash"?: string | null,"contact_name"?: string,"contact_phone"?: string,"created_at"?: string,"customer_id"?: string,"fingerprint"?: string | null,"id"?: string,"idempotency_key"?: string | null,"message"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"product"?: Database["public"]['Enums']["insurance_product"] | null,"reference"?: string,"source"?: Database["public"]['Enums']["enquiry_source"],"status"?: Database["public"]['Enums']["enquiry_status"],"travel_days"?: number | null,"travel_destination"?: string | null,"travellers"?: number | null,"type"?: Database["public"]['Enums']["enquiry_type"],"updated_at"?: string,"user_agent"?: string | null,"vehicle_id"?: string | null
+                    "assigned_to"?: string | null,"client_ip_hash"?: string | null,"contact_name"?: string,"contact_phone"?: string | null,"created_at"?: string,"customer_id"?: string,"fingerprint"?: string | null,"id"?: string,"idempotency_key"?: string | null,"message"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"product"?: Database["public"]['Enums']["insurance_product"] | null,"reference"?: string,"renewal_policy_id"?: string | null,"source"?: Database["public"]['Enums']["enquiry_source"],"status"?: Database["public"]['Enums']["enquiry_status"],"travel_days"?: number | null,"travel_destination"?: string | null,"travellers"?: number | null,"type"?: Database["public"]['Enums']["enquiry_type"],"updated_at"?: string,"user_agent"?: string | null,"vehicle_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -84,6 +134,12 @@ isOneToOne: false
       columns: ["customer_id"]
 isOneToOne: false
       referencedRelation: "customers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "enquiries_renewal_policy_id_fkey"
+      columns: ["renewal_policy_id"]
+isOneToOne: false
+      referencedRelation: "policies"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "enquiries_vehicle_id_fkey"
@@ -248,6 +304,37 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"policy_documents": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"content_type": string,"created_at": string,"id": string,"kind": Database["public"]['Enums']["document_kind"],"policy_id": string,"size_bytes": number,"storage_path": string,"title": string,"updated_at": string,"uploaded_by": string | null,"visible_to_customer": boolean
+                  }
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"content_type": string,"created_at"?: string,"id"?: string,"kind": Database["public"]['Enums']["document_kind"],"policy_id": string,"size_bytes": number,"storage_path": string,"title": string,"updated_at"?: string,"uploaded_by"?: string | null,"visible_to_customer"?: boolean
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"content_type"?: string,"created_at"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["document_kind"],"policy_id"?: string,"size_bytes"?: number,"storage_path"?: string,"title"?: string,"updated_at"?: string,"uploaded_by"?: string | null,"visible_to_customer"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "policy_documents_approved_by_fkey"
+      columns: ["approved_by"]
+isOneToOne: false
+      referencedRelation: "staff_users"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "policy_documents_policy_id_fkey"
+      columns: ["policy_id"]
+isOneToOne: false
+      referencedRelation: "policies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "policy_documents_uploaded_by_fkey"
+      columns: ["uploaded_by"]
+isOneToOne: false
+      referencedRelation: "staff_users"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"quotations": {
                   Row: {
                     "created_at": string,"deductible": number | null,"enquiry_id": string,"id": string,"insurer_id": string,"notes": string | null,"premium": number,"prepared_by": string | null,"product": Database["public"]['Enums']["insurance_product"],"repair_type": string | null,"status": Database["public"]['Enums']["quotation_status"],"sum_insured": number | null,"updated_at": string,"valid_until": string | null
@@ -392,7 +479,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "consume_rate_limit":
+            "accept_customer_invitation":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"consume_rate_limit":
 { Args: { "p_bucket_key": string,"p_limit": number,"p_window_seconds": number }; Returns: Json
                            },
 "convert_quotation_to_policy":
@@ -400,6 +490,12 @@ isOneToOne: false
                            },
 "crm_conversion_report":
 { Args: { "p_from": string,"p_to": string }; Returns: Json
+                           },
+"portal_overview":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"portal_request_renewal":
+{ Args: { "p_message"?: string,"p_policy_id": string }; Returns: Json
                            },
 "run_renewal_job":
 { Args: Record<PropertyKey, never>; Returns: Json
@@ -427,7 +523,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "activity_type": "call"|"line"|"email"|"meeting"|"note","consent_method": "web_form"|"phone"|"line"|"paper","consent_purpose": "quote_processing"|"marketing"|"sensitive_data","contact_channel": "phone"|"line"|"email","enquiry_source": "web_quote_form"|"web_contact_form"|"phone"|"line"|"walk_in"|"referral","enquiry_status": "new"|"contacted"|"quoting"|"quoted"|"won"|"lost"|"spam","enquiry_type": "quote"|"contact","insurance_product": "car_1"|"car_2plus"|"car_3plus"|"ev"|"compulsory"|"travel","policy_status": "pending"|"active"|"expired"|"cancelled","quotation_status": "draft"|"sent"|"accepted"|"declined"|"expired","staff_role": "admin"|"agent"|"viewer","task_status": "open"|"in_progress"|"done"|"cancelled"
+            "activity_type": "call"|"line"|"email"|"meeting"|"note","consent_method": "web_form"|"phone"|"line"|"paper","consent_purpose": "quote_processing"|"marketing"|"sensitive_data","contact_channel": "phone"|"line"|"email","document_kind": "policy"|"receipt"|"endorsement"|"other","enquiry_source": "web_quote_form"|"web_contact_form"|"phone"|"line"|"walk_in"|"referral"|"customer_portal","enquiry_status": "new"|"contacted"|"quoting"|"quoted"|"won"|"lost"|"spam","enquiry_type": "quote"|"contact","insurance_product": "car_1"|"car_2plus"|"car_3plus"|"ev"|"compulsory"|"travel","policy_status": "pending"|"active"|"expired"|"cancelled","quotation_status": "draft"|"sent"|"accepted"|"declined"|"expired","staff_role": "admin"|"agent"|"viewer","task_status": "open"|"in_progress"|"done"|"cancelled"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -543,7 +639,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "activity_type": ["call", "line", "email", "meeting", "note"],"consent_method": ["web_form", "phone", "line", "paper"],"consent_purpose": ["quote_processing", "marketing", "sensitive_data"],"contact_channel": ["phone", "line", "email"],"enquiry_source": ["web_quote_form", "web_contact_form", "phone", "line", "walk_in", "referral"],"enquiry_status": ["new", "contacted", "quoting", "quoted", "won", "lost", "spam"],"enquiry_type": ["quote", "contact"],"insurance_product": ["car_1", "car_2plus", "car_3plus", "ev", "compulsory", "travel"],"policy_status": ["pending", "active", "expired", "cancelled"],"quotation_status": ["draft", "sent", "accepted", "declined", "expired"],"staff_role": ["admin", "agent", "viewer"],"task_status": ["open", "in_progress", "done", "cancelled"]
+            "activity_type": ["call", "line", "email", "meeting", "note"],"consent_method": ["web_form", "phone", "line", "paper"],"consent_purpose": ["quote_processing", "marketing", "sensitive_data"],"contact_channel": ["phone", "line", "email"],"document_kind": ["policy", "receipt", "endorsement", "other"],"enquiry_source": ["web_quote_form", "web_contact_form", "phone", "line", "walk_in", "referral", "customer_portal"],"enquiry_status": ["new", "contacted", "quoting", "quoted", "won", "lost", "spam"],"enquiry_type": ["quote", "contact"],"insurance_product": ["car_1", "car_2plus", "car_3plus", "ev", "compulsory", "travel"],"policy_status": ["pending", "active", "expired", "cancelled"],"quotation_status": ["draft", "sent", "accepted", "declined", "expired"],"staff_role": ["admin", "agent", "viewer"],"task_status": ["open", "in_progress", "done", "cancelled"]
           }
         }
 } as const

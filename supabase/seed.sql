@@ -6,13 +6,17 @@
 -- Logins (local only). Password for all: checkkhum-local-only
 --   admin@  → admin        agent@  → agent (staff)      viewer@ → read-only staff
 --   former@ → deactivated staff                         outsider@ → signed-in, not staff
+--   customer-a@ → portal login for customer สมมติ ใจดี    customer-b@ → portal login for ตัวอย่าง รักษ์รถ
+--   (customer portal accounts are linked at the end of this file)
 create temporary table seed_users (id uuid, email text) on commit drop;
 insert into seed_users values
   ('11111111-1111-4111-8111-111111111101', 'admin@checkkhum.example'),
   ('11111111-1111-4111-8111-111111111102', 'agent@checkkhum.example'),
   ('11111111-1111-4111-8111-111111111103', 'viewer@checkkhum.example'),
   ('11111111-1111-4111-8111-111111111104', 'former@checkkhum.example'),
-  ('11111111-1111-4111-8111-111111111105', 'outsider@checkkhum.example');
+  ('11111111-1111-4111-8111-111111111105', 'outsider@checkkhum.example'),
+  ('11111111-1111-4111-8111-111111111201', 'customer-a@checkkhum.example'),
+  ('11111111-1111-4111-8111-111111111202', 'customer-b@checkkhum.example');
 
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
                         raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
@@ -118,5 +122,30 @@ insert into public.follow_up_tasks (customer_id, enquiry_id, title, due_date, as
   ('33333333-3333-4333-8333-333333333303', '55555555-5555-4555-8555-555555555503', 'ติดต่อกลับเรื่องประกันเดินทางญี่ปุ่น',
    current_date + 3, null);
 
+-- An active EV policy for customer B (portal isolation tests need one each).
+insert into public.policies (id, customer_id, vehicle_id, insurer_id, product, policy_number, start_date, end_date, premium, status) values
+  ('77777777-7777-4777-8777-777777777706', '33333333-3333-4333-8333-333333333302', '44444444-4444-4444-8444-444444444402',
+   '22222222-2222-4222-8222-222222222202', 'ev', 'DEMO-POL-0006', current_date - 300, current_date + 65, 28500, 'active');
+
 -- Run the renewal job once so the CRM has renewal tasks and reminders to show.
 select private.run_renewal_job(90, 'schedule');
+
+-- Customer portal: two linked customer logins, made the way production makes
+-- them (a staff invitation, then the verified user accepts it).
+insert into public.customer_invitations (id, customer_id, email, invited_by) values
+  ('99999999-9999-4999-8999-999999999901', '33333333-3333-4333-8333-333333333301', 'customer-a@checkkhum.example', '11111111-1111-4111-8111-111111111102'),
+  ('99999999-9999-4999-8999-999999999902', '33333333-3333-4333-8333-333333333302', 'customer-b@checkkhum.example', '11111111-1111-4111-8111-111111111102');
+
+do $$
+declare
+  u uuid;
+begin
+  foreach u in array array['11111111-1111-4111-8111-111111111201', '11111111-1111-4111-8111-111111111202']::uuid[] loop
+    perform set_config('request.jwt.claims', jsonb_build_object('sub', u, 'role', 'authenticated')::text, true);
+    if public.accept_customer_invitation() <> 'linked' then
+      raise exception 'seed: could not link portal account %', u;
+    end if;
+  end loop;
+  perform set_config('request.jwt.claims', '', true);
+end;
+$$;

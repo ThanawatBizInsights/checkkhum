@@ -13,6 +13,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: {
+    // Staff upload policy documents (max 10 MB each) through a server action.
+    serverActions: { bodySizeLimit: "11mb" },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

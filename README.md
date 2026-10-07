@@ -41,9 +41,17 @@ npm start
 | `/quote` | Quotation enquiry; `?plan=car-1 \| car-2plus \| car-3plus \| ev \| compulsory \| travel` preselects a plan |
 | `/contact` | Contact channels and callback request |
 | `/privacy` | Privacy notice: **draft**, not indexed |
-| `/staff/login` | Staff sign-in (Supabase Auth) |
+| `/customer/login` | Customer sign-in (Supabase Auth); header "เข้าสู่ระบบ" › ลูกค้า |
+| `/customer/forgot-password` | Request a password reset email |
+| `/customer/auth/confirm` | Landing for invitation and reset email links (verifies the token server-side) |
+| `/customer/set-password` | Choose a password after an invitation or reset link |
+| `/customer` | Customer dashboard ("บัญชีของฉัน"): policies, vehicles, coverage and renewal dates, documents, quotations, request status, renewal request, LINE |
+| `/customer/documents/[id]` | Download one of the customer's approved documents (60-second signed URL) |
+| `/staff/login` | Staff sign-in (Supabase Auth); header "เข้าสู่ระบบ" › เจ้าหน้าที่ |
 | `/staff/…` | Staff CRM: overview, enquiries, customers, policies, tasks, reports, admin, account (see "Staff CRM") |
+| `/staff/documents/[id]` | Staff download of a policy document |
 | `POST /api/enquiries` | Enquiry endpoint used by the quote and contact forms |
+| `GET /api/account` | Signed-in state for the header menu (`signed_out`, `customer` or `staff` only) |
 
 ## Contact details
 
@@ -220,14 +228,18 @@ added by admins only.
 
 **Local logins** (fictional seed, password `checkkhum-local-only`):
 `admin@checkkhum.example`, `agent@checkkhum.example`, `viewer@checkkhum.example`,
-plus `former@` (deactivated) and `outsider@` (not staff) for testing refusals.
+plus `former@` (deactivated) and `outsider@` (not staff) for testing refusals, and
+customer portal logins `customer-a@checkkhum.example` and `customer-b@checkkhum.example`.
+Local auth emails (invitations, resets) arrive in Mailpit at http://127.0.0.1:54324.
 
 **Checks**
 
 ```bash
-npm run db:test                                   # 104 database tests (both suites)
+npm run db:test                                   # 160 database tests (3 suites)
 npx supabase db reset && npm run build && npm start
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:crm   # 75 end-to-end checks
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:crm      # 78 end-to-end checks
+npx supabase db reset
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 109 customer portal checks
 ```
 
 Full launch audit (mobile layouts at 360/390px, Thai fonts and text size, every internal
@@ -247,6 +259,55 @@ enquiry → quotation → policy flow, the renewal job and staff management.
 
 After changing the schema, run `npm run db:types` to refresh `src/lib/database.types.ts`.
 
+## Customer portal
+
+Customers sign in at `/customer/login` (header "เข้าสู่ระบบ" › ลูกค้า, or the footer) and
+see only their own records at `/customer` ("บัญชีของฉัน"): policies with insurer, policy
+number, insured vehicle, coverage dates and renewal date; documents staff have approved;
+quotations staff have sent; the status of their requests; a "ขอใบเสนอราคาต่ออายุ"
+button that opens a renewal enquiry in the CRM pipeline; and LINE contact buttons.
+
+**How a customer gets an account.** Customers can't sign up. Staff open the customer in
+the CRM › "บัญชีลูกค้าออนไลน์", enter the customer's email and press "ส่งคำเชิญ"
+(agents and admins). Supabase emails an invitation; the customer clicks it (this
+verifies the email), chooses a password, and the database links the login to that
+customer record. A login is linked only when its **verified** email matches a pending
+invitation; typing an email or phone number never reveals anything. A signed-in login
+without a link sees an empty state with the LINE button. Admins can unlink an account.
+Staff and customer logins are kept separate (a staff email can't be invited).
+
+**Documents.** On a policy page staff upload PDF/JPG/PNG files (max 10 MB, type checked
+from the file content) to the private `policy-documents` bucket and approve each one
+("อนุมัติให้ลูกค้าเห็น") before the customer can see it. Downloads use 60-second signed
+URLs created with the requester's own session, so storage policies decide.
+
+What customers never see: internal notes, draft quotations, who prepared what, tasks,
+renewal tasks, reminders, consent and audit records, staff, other customers. Details in
+[`docs/database.md`](docs/database.md) › Customer portal.
+
+### Supabase configuration for the portal (hosted project)
+
+Apply the migrations first (`npx supabase db push`, see above); they create the tables,
+policies, functions and the private storage bucket. No new environment variables are
+needed. Then in the Supabase dashboard:
+
+1. **Authentication › URL Configuration**
+   - **Site URL**: your production URL, e.g. `https://www.your-domain.co.th` (email
+     links are built from it).
+   - **Redirect URLs**: add `https://www.your-domain.co.th/customer/auth/confirm` (and
+     your Vercel preview pattern if previews should work).
+2. **Authentication › Emails › Templates**: paste the Thai templates from
+   `supabase/templates/invite.html` ("Invite user") and `supabase/templates/recovery.html`
+   ("Reset password"), with the subjects from `supabase/config.toml`. Their links go to
+   `/customer/auth/confirm?token_hash=…`, which the server verifies; the default
+   templates don't work with this server-side login.
+3. **Authentication › Emails › SMTP Settings**: set up your own SMTP sender. Supabase's
+   built-in sender is for testing only and sends very few emails per hour.
+4. **Authentication › Sign In / Providers**: keep "Allow new users to sign up" **off**
+   and email confirmation on. Optionally set the minimum password length to 10 (the
+   site requires 10 for customers, 12 for staff).
+5. **Advisors › Security Advisor**: confirm there are no findings.
+
 ## Before launch
 
 - Fill in contact and legal details in `src/config/site.ts`.
@@ -255,6 +316,8 @@ After changing the schema, run `npm run db:types` to refresh `src/lib/database.t
 - Apply the migrations to your Supabase project and set the environment variables
   (see "Enquiry database").
 - Create the first admin account (see "Staff CRM") and confirm sign-ups are disabled.
+- Configure Site URL, redirect URL, email templates and SMTP for customer invitations
+  (see "Customer portal").
 - Replace `public/images/checkkhum-logo.png` and `hero-car.webp` with the original
   high-resolution artwork; the current files are cropped from the 667px-wide approved poster.
 

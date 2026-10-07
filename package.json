@@ -17,6 +17,7 @@
     "verify:enquiries": "node scripts/verify-enquiry-api.mjs",
     "db:types": "supabase gen types typescript --local --schema public > src/lib/database.types.ts",
     "verify:crm": "node scripts/verify-crm.mjs",
+    "verify:portal": "node scripts/verify-portal.mjs",
     "audit": "node scripts/audit-site.mjs"
   },
   "engines": {

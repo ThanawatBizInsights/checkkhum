@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { addActivity, addPolicy, addVehicle, createEnquiry, createTask, updateCustomer } from "@/app/staff/_actions/crm";
 import { ActionForm } from "@/components/staff/action-form";
 import { ActivityForm, ActivityList, TaskForm } from "@/components/staff/customer-bits";
+import { CustomerPortalSheet } from "@/components/staff/portal-sheets";
 import { TaskList } from "@/components/staff/task-list";
 import { Empty, Field, PageTitle, Pill, Select, Sheet, StatusBadge } from "@/components/staff/ui";
 import {
@@ -254,6 +255,8 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
               )}
               <p className="mt-3 text-[0.9375rem] text-ink-soft">เบอร์โทรเป็นตัวระบุลูกค้า เปลี่ยนได้โดยผู้ดูแลระบบในฐานข้อมูล</p>
             </Sheet>
+
+            <CustomerPortalSheet staff={staff} customerId={c.id} email={c.email} />
 
             <Sheet title="การยินยอม (PDPA)" id="consent-title">
               {latestConsent.size ? (

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { addActivity, createTask, setPolicyStatus } from "@/app/staff/_actions/crm";
 import { ActionForm } from "@/components/staff/action-form";
 import { ActivityForm, ActivityList, TaskForm } from "@/components/staff/customer-bits";
+import { PolicyDocumentsSheet } from "@/components/staff/portal-sheets";
 import { TaskList } from "@/components/staff/task-list";
 import { Empty, Field, KeyValue, PageTitle, Pill, Select, Sheet } from "@/components/staff/ui";
 import { bangkokToday, daysBetween, formatBaht, formatDate, formatDateTime, policyStatusLabels, productLabels, taskStatusLabels } from "@/lib/crm-labels";
@@ -99,6 +100,8 @@ export default async function PolicyPage({ params }: { params: Promise<{ id: str
             )}
           </Sheet>
         </div>
+
+        <PolicyDocumentsSheet staff={staff} policyId={p.id} />
 
         <Sheet title="บันทึกการติดตาม" id="pnotes-title">
           {staff.canWrite && p.customers && <ActivityForm action={addActivity} customerId={p.customers.id} policyId={p.id} backTo={`/staff/policies/${p.id}`} />}

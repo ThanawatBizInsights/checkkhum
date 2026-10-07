@@ -38,7 +38,7 @@ const warn = (msg) => {
   warnings.push(msg);
 };
 
-const PUBLIC = ["/", "/car-insurance", "/ev-insurance", "/compulsory-insurance", "/travel-insurance", "/quote", "/contact", "/privacy", "/staff/login"];
+const PUBLIC = ["/", "/car-insurance", "/ev-insurance", "/compulsory-insurance", "/travel-insurance", "/quote", "/contact", "/privacy", "/staff/login", "/customer/login", "/customer/forgot-password"];
 const CRM = [
   "/staff", "/staff/enquiries", "/staff/enquiries/55555555-5555-4555-8555-555555555502", "/staff/customers",
   "/staff/customers/33333333-3333-4333-8333-333333333301", "/staff/policies?within=30", "/staff/policies?within=90",
@@ -197,6 +197,7 @@ for (const width of [360, 390]) {
   const tables = [
     "customers", "vehicles", "enquiries", "quotations", "policies", "follow_up_activities", "follow_up_tasks", "renewal_tasks",
     "consent_records", "staff_users", "insurers", "audit_logs", "enquiry_status_history", "staff_reminders", "renewal_job_runs",
+    "customer_invitations", "customer_accounts", "policy_documents",
   ];
   const readable = [];
   for (const t of tables) {
@@ -212,6 +213,9 @@ for (const width of [360, 390]) {
     search_customers: { p_query: "สมมติ" },
     crm_conversion_report: { p_from: "2020-01-01", p_to: "2030-01-01" },
     run_renewal_job: {},
+    accept_customer_invitation: {},
+    portal_overview: {},
+    portal_request_renewal: { p_policy_id: "77777777-7777-4777-8777-777777777701" },
     convert_quotation_to_policy: { p_quotation_id: "66666666-6666-4666-8666-666666666603", p_policy_number: "X", p_start_date: "2026-01-01", p_end_date: "2027-01-01" },
   };
   const callable = [];

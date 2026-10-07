@@ -13,6 +13,8 @@ has been applied. Add a new one with `npx supabase migration new <name>`.
 | `20261005060400_enquiry_intake.sql` | `submit_enquiry` and `consume_rate_limit` (server only) |
 | `20261006090000_crm_workflow.sql` | Pipeline rules, status history, follow-up tasks, author stamping, customer search, conversion report, quotation → policy |
 | `20261006090100_renewal_job.sql` | Scheduled renewal job (pg_cron), staff reminders, job run log; replaces the renewal trigger |
+| `20261008090000_customer_portal_enum.sql` | Enquiry source `customer_portal` (own migration: a new enum value can't be used in the same transaction) |
+| `20261008090100_customer_portal.sql` | Customer portal: invitations, account links, policy documents + private storage bucket, portal functions, renewal requests |
 
 ## Entity relationship diagram
 
@@ -52,6 +54,14 @@ erDiagram
     RENEWAL_TASKS |o--o{ STAFF_REMINDERS : "reminds about"
     FOLLOW_UP_TASKS |o--o{ STAFF_REMINDERS : "reminds about"
     STAFF_USERS |o--o{ RENEWAL_JOB_RUNS : "runs manually"
+    CUSTOMERS ||--o{ CUSTOMER_INVITATIONS : "invited as"
+    STAFF_USERS |o--o{ CUSTOMER_INVITATIONS : sends
+    AUTH_USERS ||--o| CUSTOMER_ACCOUNTS : "is"
+    CUSTOMERS ||--o| CUSTOMER_ACCOUNTS : "signs in as"
+    CUSTOMER_INVITATIONS |o--o| CUSTOMER_ACCOUNTS : "accepted as"
+    POLICIES ||--o{ POLICY_DOCUMENTS : "has files"
+    STAFF_USERS |o--o{ POLICY_DOCUMENTS : "uploads, approves"
+    POLICIES |o--o{ ENQUIRIES : "renewal requested in"
 
     AUTH_USERS {
         uuid id PK "Supabase Auth"
@@ -203,6 +213,35 @@ erDiagram
         text trigger_source "schedule | manual"
         uuid triggered_by FK
     }
+    CUSTOMER_INVITATIONS {
+        uuid id PK
+        uuid customer_id FK
+        text email "lower-case"
+        uuid invited_by FK "stamped"
+        timestamptz expires_at "7 days"
+        timestamptz accepted_at
+        uuid accepted_user_id FK
+        timestamptz revoked_at
+    }
+    CUSTOMER_ACCOUNTS {
+        uuid id PK
+        uuid user_id FK,UK "auth.users.id"
+        uuid customer_id FK,UK
+        uuid invitation_id FK
+        timestamptz linked_at
+    }
+    POLICY_DOCUMENTS {
+        uuid id PK
+        uuid policy_id FK
+        document_kind kind "policy | receipt | endorsement | other"
+        text title
+        text storage_path UK "policy-documents bucket"
+        text content_type "pdf | jpeg | png"
+        integer size_bytes "max 10 MB"
+        boolean visible_to_customer
+        uuid approved_by FK "stamped"
+        uuid uploaded_by FK "stamped"
+    }
     AUDIT_LOGS {
         bigint id PK
         timestamptz occurred_at
@@ -276,6 +315,38 @@ with only `read_at` updatable; `renewal_job_runs` admins only. The CRM functions
 `SECURITY INVOKER` (RLS applies); `run_renewal_job` refuses anyone but admins and the
 scheduler. `anon` can execute none of them.
 
+### Customer portal
+
+A customer is a Supabase Auth user linked to exactly one `customers` row in
+`customer_accounts`, and never also a staff member (trigger). Customers still match
+none of the staff policies above, so **they have no direct access to any CRM table**.
+
+| Customer can… | Through | Enforced by |
+|---|---|---|
+| read own enquiries (not spam), sent quotations, policies, vehicles | `portal_overview()` (fixed customer-safe columns) | `private.current_customer_id()` inside the function |
+| read own **approved** policy documents | `policy_documents` select | RLS (`visible_to_customer` and policy owned) |
+| download those files | signed URL created with the customer's session | `storage.objects` policy (`customer_can_read_document`) |
+| ask to renew own policy | `portal_request_renewal(policy)` | ownership check, 1 open request per policy, 5/day |
+| see own account link | `customer_accounts` select | RLS (`user_id = auth.uid()`) |
+
+Never returned to customers: customer notes, quotation notes, drafts, who prepared a
+quotation, assignments, follow-up notes and tasks, renewal tasks, reminders, consent,
+audit logs, staff details, other customers. There are no commission columns.
+
+| Staff | Invitations | Account links | Policy documents (+ files) |
+|---|---|---|---|
+| viewer | read | read | read, download |
+| agent | read, create, revoke | read | read, upload, approve/hide, delete |
+| admin | read, create, revoke | read, unlink | read, upload, approve/hide, delete |
+
+**Linking** (`accept_customer_invitation()`, run at every customer sign-in): a staff
+member invites a chosen CRM customer at an email address; the login is linked only if
+its Supabase Auth email is **verified** and equals a pending, unexpired, unrevoked
+invitation, the customer isn't already linked, and the login isn't staff. Typing an
+email or phone number never links or reveals anything. Only `revoked_at` on an
+invitation can be changed (column grant), and approval of documents is stamped by
+trigger.
+
 Visitors create enquiries only through `POST /api/enquiries` on the website
 server, which calls `submit_enquiry` with the secret key. Because `anon` cannot
 execute that function, the endpoint's validation, spam checks and rate limits
@@ -319,7 +390,7 @@ sequenceDiagram
 ```bash
 npm run db:start          # local Supabase (Docker)
 npm run db:reset          # apply migrations + fictional seed
-npm run db:test           # pgTAP: 104 assertions (access control, intake, CRM rules, renewal job)
+npm run db:test           # pgTAP: 160 assertions (access control, intake, CRM rules, renewal job, customer portal)
 npm run db:lint
 npm run build && npm start                          # with .env.local → local Supabase
 BASE_URL=http://localhost:3000 npm run verify:enquiries   # 31 end-to-end API checks
@@ -329,4 +400,5 @@ BASE_URL=http://localhost:3000 npm run verify:enquiries   # 31 end-to-end API ch
 creates rows.
 
 Seed logins (local only, password `checkkhum-local-only`):
-`admin@checkkhum.example`, `agent@checkkhum.example`, `viewer@checkkhum.example`.
+`admin@checkkhum.example`, `agent@checkkhum.example`, `viewer@checkkhum.example`,
+and customer portal logins `customer-a@checkkhum.example`, `customer-b@checkkhum.example`.

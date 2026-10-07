@@ -1,3 +1,4 @@
+import { AccountMenu } from "./account-menu";
 import { ButtonLink } from "./button";
 import { Logo } from "./logo";
 import { MobileMenu } from "./mobile-menu";
@@ -12,6 +13,7 @@ export function SiteHeader() {
           <NavLinks className="flex items-center gap-1" linkClassName="rounded-lg px-3 py-2 font-semibold text-navy hover:bg-sky" />
         </nav>
         <div className="flex items-center gap-2">
+          <AccountMenu />
           <ButtonLink href="/quote" size="sm">
             ขอใบเสนอราคา
           </ButtonLink>
