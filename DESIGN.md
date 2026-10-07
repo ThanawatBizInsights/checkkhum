@@ -152,6 +152,23 @@ product page, desktop                      product page, mobile
 - Screenshots: desktop 1366px and mobile 390px of the portal, the header menu (signed
   out and in) at 1366/1024/390px; no horizontal scroll at 390px.
 
+## Customer registration
+
+- **Entry points:** the customer login card ends with "ยังไม่มีบัญชี? สมัครสมาชิก" (larger
+  type than the help text so it reads as the next step), the header login panel and the
+  mobile menu add "ลูกค้าใหม่? สมัครสมาชิก". Staff login stays a quiet text link.
+- **Form:** the same narrow navy-bordered card as login. Name, email, password (hint: 10+
+  characters, a memorable sentence works), confirmation, and the privacy notice checkbox
+  with the notice opening in a new tab. Server validation reports every problem at once,
+  each error under its field and tied with `aria-describedby`; name and email are kept.
+- **After submit:** the form becomes a mint "ตรวจอีเมลเพื่อยืนยันการสมัคร" panel naming the
+  address, with "ส่งอีเมลยืนยันอีกครั้ง" and a primary "ไปหน้าเข้าสู่ระบบ". Focus moves to
+  the panel. Expired links land on a page that says so and offers a new one.
+- **New-customer dashboard:** a sky welcome band with the verified note; one navy-bordered
+  card "เริ่มจากขอใบเสนอราคา" with the teal quote button and LINE; "คำขอของฉัน" (status
+  chips in the customer's words) and a policy empty state that explains how an existing
+  policyholder gets linked. No policy cards until staff link the account.
+
 ## Launch audit fixes
 
 - No text below 15px anywhere (CRM name/role/badges and the QR placeholder were 14px).

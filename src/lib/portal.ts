@@ -46,6 +46,8 @@ export type PortalEnquiry = {
 };
 
 export type PortalOverview = {
+  /** False for a login without a linked CRM customer (e.g. just registered). */
+  linked: boolean;
   customer: { full_name: string };
   enquiries: PortalEnquiry[];
   quotations: PortalQuotation[];

@@ -99,6 +99,19 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"customer_profiles": {
+                  Row: {
+                    "created_at": string,"email": string,"full_name": string,"id": string,"privacy_acknowledged_at": string | null,"privacy_notice_version": string | null,"source": string,"updated_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"email": string,"full_name": string,"id"?: string,"privacy_acknowledged_at"?: string | null,"privacy_notice_version"?: string | null,"source": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"privacy_acknowledged_at"?: string | null,"privacy_notice_version"?: string | null,"source"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"customers": {
                   Row: {
                     "created_at": string,"email": string | null,"full_name": string,"id": string,"line_id": string | null,"notes": string | null,"phone": string | null,"preferred_channel": Database["public"]['Enums']["contact_channel"],"updated_at": string
@@ -114,13 +127,13 @@ isOneToOne: false
                   ]
                 },"enquiries": {
                   Row: {
-                    "assigned_to": string | null,"client_ip_hash": string | null,"contact_name": string,"contact_phone": string | null,"created_at": string,"customer_id": string,"fingerprint": string | null,"id": string,"idempotency_key": string | null,"message": string | null,"preferred_channel": Database["public"]['Enums']["contact_channel"],"product": Database["public"]['Enums']["insurance_product"] | null,"reference": string,"renewal_policy_id": string | null,"source": Database["public"]['Enums']["enquiry_source"],"status": Database["public"]['Enums']["enquiry_status"],"travel_days": number | null,"travel_destination": string | null,"travellers": number | null,"type": Database["public"]['Enums']["enquiry_type"],"updated_at": string,"user_agent": string | null,"vehicle_id": string | null
+                    "assigned_to": string | null,"client_ip_hash": string | null,"contact_name": string,"contact_phone": string | null,"created_at": string,"customer_id": string,"fingerprint": string | null,"id": string,"idempotency_key": string | null,"message": string | null,"preferred_channel": Database["public"]['Enums']["contact_channel"],"product": Database["public"]['Enums']["insurance_product"] | null,"reference": string,"renewal_policy_id": string | null,"source": Database["public"]['Enums']["enquiry_source"],"status": Database["public"]['Enums']["enquiry_status"],"submitted_by_user_id": string | null,"travel_days": number | null,"travel_destination": string | null,"travellers": number | null,"type": Database["public"]['Enums']["enquiry_type"],"updated_at": string,"user_agent": string | null,"vehicle_id": string | null
                   }
                   Insert: {
-                    "assigned_to"?: string | null,"client_ip_hash"?: string | null,"contact_name": string,"contact_phone"?: string | null,"created_at"?: string,"customer_id": string,"fingerprint"?: string | null,"id"?: string,"idempotency_key"?: string | null,"message"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"product"?: Database["public"]['Enums']["insurance_product"] | null,"reference"?: string,"renewal_policy_id"?: string | null,"source": Database["public"]['Enums']["enquiry_source"],"status"?: Database["public"]['Enums']["enquiry_status"],"travel_days"?: number | null,"travel_destination"?: string | null,"travellers"?: number | null,"type": Database["public"]['Enums']["enquiry_type"],"updated_at"?: string,"user_agent"?: string | null,"vehicle_id"?: string | null
+                    "assigned_to"?: string | null,"client_ip_hash"?: string | null,"contact_name": string,"contact_phone"?: string | null,"created_at"?: string,"customer_id": string,"fingerprint"?: string | null,"id"?: string,"idempotency_key"?: string | null,"message"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"product"?: Database["public"]['Enums']["insurance_product"] | null,"reference"?: string,"renewal_policy_id"?: string | null,"source": Database["public"]['Enums']["enquiry_source"],"status"?: Database["public"]['Enums']["enquiry_status"],"submitted_by_user_id"?: string | null,"travel_days"?: number | null,"travel_destination"?: string | null,"travellers"?: number | null,"type": Database["public"]['Enums']["enquiry_type"],"updated_at"?: string,"user_agent"?: string | null,"vehicle_id"?: string | null
                   }
                   Update: {
-                    "assigned_to"?: string | null,"client_ip_hash"?: string | null,"contact_name"?: string,"contact_phone"?: string | null,"created_at"?: string,"customer_id"?: string,"fingerprint"?: string | null,"id"?: string,"idempotency_key"?: string | null,"message"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"product"?: Database["public"]['Enums']["insurance_product"] | null,"reference"?: string,"renewal_policy_id"?: string | null,"source"?: Database["public"]['Enums']["enquiry_source"],"status"?: Database["public"]['Enums']["enquiry_status"],"travel_days"?: number | null,"travel_destination"?: string | null,"travellers"?: number | null,"type"?: Database["public"]['Enums']["enquiry_type"],"updated_at"?: string,"user_agent"?: string | null,"vehicle_id"?: string | null
+                    "assigned_to"?: string | null,"client_ip_hash"?: string | null,"contact_name"?: string,"contact_phone"?: string | null,"created_at"?: string,"customer_id"?: string,"fingerprint"?: string | null,"id"?: string,"idempotency_key"?: string | null,"message"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"product"?: Database["public"]['Enums']["insurance_product"] | null,"reference"?: string,"renewal_policy_id"?: string | null,"source"?: Database["public"]['Enums']["enquiry_source"],"status"?: Database["public"]['Enums']["enquiry_status"],"submitted_by_user_id"?: string | null,"travel_days"?: number | null,"travel_destination"?: string | null,"travellers"?: number | null,"type"?: Database["public"]['Enums']["enquiry_type"],"updated_at"?: string,"user_agent"?: string | null,"vehicle_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -496,6 +509,12 @@ isOneToOne: false
                            },
 "portal_request_renewal":
 { Args: { "p_message"?: string,"p_policy_id": string }; Returns: Json
+                           },
+"portal_session":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"record_enquiry_submitter":
+{ Args: { "p_reference": string,"p_user": string }; Returns: boolean
                            },
 "run_renewal_job":
 { Args: Record<PropertyKey, never>; Returns: Json

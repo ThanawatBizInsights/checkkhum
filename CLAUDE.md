@@ -43,10 +43,10 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 | `src/components/` | Reusable UI: `QuoteForm`, `ProductPage`, `ContactChannels`, `ContactBand`, `DemoNotice`, `Button` |
 | `src/app/(site)/` | Public pages, with header/footer/mobile quote bar |
 | `src/app/staff/` | Staff login and dashboard, separate layout, `noindex` |
-| `src/app/(site)/customer/`, `src/lib/server/customer-auth.ts`, `src/components/customer/` | Customer portal (login, reset, dashboard, documents), `noindex` |
+| `src/app/(site)/customer/`, `src/lib/server/customer-auth.ts`, `src/components/customer/` | Customer portal (register, verify email, login, reset, dashboard, documents), `noindex` |
 | `src/app/staff/_actions/portal.ts`, `src/components/staff/portal-sheets.tsx` | Staff side of the portal: invitations, account links, policy documents |
 | `src/components/account-menu.tsx`, `src/app/api/account/route.ts` | Header "เข้าสู่ระบบ" / "บัญชีของฉัน" menu (desktop + mobile) |
-| `supabase/templates/` | Thai auth email templates (invite, recovery) using `token_hash` links |
+| `supabase/templates/` | Thai auth email templates (sign-up confirmation, invite, recovery) using `token_hash` links |
 | `DESIGN.md` | Design tokens, layout, rationale |
 
 ## Rules
@@ -93,7 +93,12 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
   `accept_customer_invitation()` (verified email + staff invitation); never link or look
   up records from a typed email or phone. Documents reach customers only after staff
   approval. Portal pages call `requireCustomer()`; routes use the customer's own client.
-  Extend `supabase/tests/portal.test.sql` and `scripts/verify-portal.mjs` with every change.
+  Self-registration (`/customer/register`) only creates a login and its `customer_profiles`
+  row; it must never create `staff_users` rows, grant roles, or attach existing CRM
+  records. Unlinked logins see only their profile and enquiries recorded as submitted by
+  them (`record_enquiry_submitter`, server only, from the verified session). Keep email
+  confirmation required. Extend `supabase/tests/portal.test.sql`,
+  `supabase/tests/registration.test.sql` and `scripts/verify-portal.mjs` with every change.
 - **Workflow rules live in the database** (`private.enforce_enquiry_status`, author
   stamping, `convert_quotation_to_policy`). Mirror them in the UI (`nextStatuses`) but
   never rely on the UI alone.

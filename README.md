@@ -42,6 +42,8 @@ npm start
 | `/contact` | Contact channels and callback request |
 | `/privacy` | Privacy notice: **draft**, not indexed |
 | `/customer/login` | Customer sign-in (Supabase Auth); header "เข้าสู่ระบบ" › ลูกค้า |
+| `/customer/register` | Customer registration (email verification required) |
+| `/customer/verify-email` | Resend the verification email; expired verification links land here |
 | `/customer/forgot-password` | Request a password reset email |
 | `/customer/auth/confirm` | Landing for invitation and reset email links (verifies the token server-side) |
 | `/customer/set-password` | Choose a password after an invitation or reset link |
@@ -136,9 +138,9 @@ npx supabase db push                                  # applies supabase/migrati
 `db push` does **not** run `seed.sql`; never load the fictional seed into
 production. Then, in the Supabase dashboard:
 
-1. **Authentication › Sign In / Providers**: turn off **Allow new users to sign up**
-   (staff are invited, not self-registered). `supabase/config.toml` only
-   affects the local stack.
+1. **Authentication**: configure sign-up and emails as described in
+   "Customer portal › Supabase configuration" below (customers may register;
+   staff never can). `supabase/config.toml` only affects the local stack.
 2. **Advisors › Security Advisor**: confirm there are no findings.
 3. To add staff later: invite the user under **Authentication › Users**, then
    insert their row into `staff_users` with a role (`admin`, `agent`, `viewer`).
@@ -223,23 +225,25 @@ job; it will be a separate integration reading the same tasks.
    ```
 3. Sign in at `/staff/login`. Add other staff from ผู้ดูแลระบบ › เพิ่มพนักงาน.
 
-Keep **Authentication › Sign In / Providers › Allow new users to sign up** off: staff are
-added by admins only.
+Staff accounts are added by admins only. Public sign-up (for customers) never creates a
+`staff_users` row or grants a role: staff rights come only from that table, which only
+admins can write. A login added by hand in the dashboard gets a customer profile until
+its `staff_users` row is inserted, which removes the profile.
 
 **Local logins** (fictional seed, password `checkkhum-local-only`):
 `admin@checkkhum.example`, `agent@checkkhum.example`, `viewer@checkkhum.example`,
 plus `former@` (deactivated) and `outsider@` (not staff) for testing refusals, and
 customer portal logins `customer-a@checkkhum.example` and `customer-b@checkkhum.example`.
-Local auth emails (invitations, resets) arrive in Mailpit at http://127.0.0.1:54324.
+Local auth emails (sign-up verification, invitations, resets) arrive in Mailpit at http://127.0.0.1:54324.
 
 **Checks**
 
 ```bash
-npm run db:test                                   # 160 database tests (3 suites)
+npm run db:test                                   # 202 database tests (4 suites)
 npx supabase db reset && npm run build && npm start
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:crm      # 78 end-to-end checks
 npx supabase db reset
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 109 customer portal checks
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 163 customer portal + registration checks
 ```
 
 Full launch audit (mobile layouts at 360/390px, Thai fonts and text size, every internal
@@ -267,14 +271,25 @@ number, insured vehicle, coverage dates and renewal date; documents staff have a
 quotations staff have sent; the status of their requests; a "ขอใบเสนอราคาต่ออายุ"
 button that opens a renewal enquiry in the CRM pipeline; and LINE contact buttons.
 
-**How a customer gets an account.** Customers can't sign up. Staff open the customer in
-the CRM › "บัญชีลูกค้าออนไลน์", enter the customer's email and press "ส่งคำเชิญ"
-(agents and admins). Supabase emails an invitation; the customer clicks it (this
-verifies the email), chooses a password, and the database links the login to that
-customer record. A login is linked only when its **verified** email matches a pending
-invitation; typing an email or phone number never reveals anything. A signed-in login
-without a link sees an empty state with the LINE button. Admins can unlink an account.
-Staff and customer logins are kept separate (a staff email can't be invited).
+**Registering.** Anyone can register at `/customer/register` (login page: "ยังไม่มีบัญชี?
+สมัครสมาชิก"; header menu: "ลูกค้าใหม่? สมัครสมาชิก") with name, email, password (10+
+characters), confirmation and the privacy notice acknowledgement. Supabase emails a
+verification link; until it is used the login can't sign in ("ส่งอีเมลยืนยันอีกครั้ง" on
+the login page and `/customer/verify-email` sends a new one; expired or reused links land
+there too). After verifying, the customer is signed in to `/customer` and sees a welcome,
+a "ขอใบเสนอราคา" button and the status of any request they submit while signed in.
+A database trigger creates their `customer_profiles` row (one per login, unique), with an
+idempotent fallback on first use. Registration is limited to 10 per hour per IP.
+
+**Linking to existing CRM records stays staff-approved.** Registering never claims an
+existing customer, policy or document, even when the email or phone matches. Staff open
+the customer in the CRM › "บัญชีลูกค้าออนไลน์", enter the email (confirm it with the
+customer first) and press "ส่งคำเชิญ" (agents and admins). A new address gets an
+invitation email; an address that already registered gets linked the next time that
+customer signs in. Either way the database links only a login whose **verified** email
+equals that pending invitation. The CRM customers page lists the newest online accounts
+and whether each is linked. Admins can unlink. Staff and customer logins are kept
+separate (a staff email can't be invited or registered).
 
 **Documents.** On a policy page staff upload PDF/JPG/PNG files (max 10 MB, type checked
 from the file content) to the private `policy-documents` bucket and approve each one
@@ -296,17 +311,30 @@ needed. Then in the Supabase dashboard:
      links are built from it).
    - **Redirect URLs**: add `https://www.your-domain.co.th/customer/auth/confirm` (and
      your Vercel preview pattern if previews should work).
-2. **Authentication › Emails › Templates**: paste the Thai templates from
-   `supabase/templates/invite.html` ("Invite user") and `supabase/templates/recovery.html`
-   ("Reset password"), with the subjects from `supabase/config.toml`. Their links go to
-   `/customer/auth/confirm?token_hash=…`, which the server verifies; the default
-   templates don't work with this server-side login.
-3. **Authentication › Emails › SMTP Settings**: set up your own SMTP sender. Supabase's
-   built-in sender is for testing only and sends very few emails per hour.
-4. **Authentication › Sign In / Providers**: keep "Allow new users to sign up" **off**
-   and email confirmation on. Optionally set the minimum password length to 10 (the
-   site requires 10 for customers, 12 for staff).
-5. **Advisors › Security Advisor**: confirm there are no findings.
+2. **Authentication › Emails › Templates**: paste the three Thai templates, with the
+   subjects from `supabase/config.toml`:
+   - "Confirm sign up": `supabase/templates/confirmation.html`
+   - "Invite user": `supabase/templates/invite.html`
+   - "Reset password": `supabase/templates/recovery.html`
+
+   Their links go to `/customer/auth/confirm?token_hash=…&type=…`, which the server
+   verifies. Don't keep the default templates: their links don't work with this
+   server-side login.
+3. **Authentication › Emails › SMTP Settings**: set up your own SMTP sender (e.g. your
+   domain's mail service, Resend, Amazon SES, SendGrid) with a sender on your domain
+   and SPF/DKIM set up. Supabase's built-in sender is for testing only: it sends only a
+   few emails per hour, so registrations would fail without this.
+4. **Authentication › Sign In / Providers › Email**:
+   - **Allow new users to sign up**: **on** (customer registration).
+   - **Confirm email**: **on**. Required: unverified logins can't sign in. (If it is
+     off, the site refuses to start a session after sign-up and logs an error.)
+   - **Minimum password length**: 10 (the site requires 10 for customers, 12 for staff).
+   - Leave anonymous sign-ins and other providers off.
+5. **Authentication › Rate Limits**: sign-ups and sign-ins reach Supabase from the
+   website server, so Supabase sees few IP addresses. Raise "sign-ups and sign-ins" and
+   "emails sent" to fit your traffic (the site applies its own per-visitor limit to
+   registrations).
+6. **Advisors › Security Advisor**: confirm there are no findings.
 
 ## Before launch
 
@@ -315,9 +343,9 @@ needed. Then in the Supabase dashboard:
   and `robots: noindex` in `src/app/(site)/privacy/page.tsx`.
 - Apply the migrations to your Supabase project and set the environment variables
   (see "Enquiry database").
-- Create the first admin account (see "Staff CRM") and confirm sign-ups are disabled.
-- Configure Site URL, redirect URL, email templates and SMTP for customer invitations
-  (see "Customer portal").
+- Create the first admin account (see "Staff CRM").
+- Configure Site URL, redirect URL, the three email templates, SMTP, sign-up with
+  email confirmation and rate limits (see "Customer portal").
 - Replace `public/images/checkkhum-logo.png` and `hero-car.webp` with the original
   high-resolution artwork; the current files are cropped from the 667px-wide approved poster.
 

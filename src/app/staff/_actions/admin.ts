@@ -29,6 +29,8 @@ export async function createStaffUser(_prev: ActionResult, formData: FormData): 
       email: input.email,
       password: input.temp_password,
       email_confirm: true,
+      // Marks a staff login so the database creates no customer profile for it.
+      app_metadata: { checkkhum_staff: true },
     });
     if (error || !data.user) {
       throw new ActionFailure(error?.code === "email_exists" ? "อีเมลนี้มีบัญชีอยู่แล้ว" : "สร้างบัญชีไม่สำเร็จ ลองรหัสผ่านที่เดายากกว่านี้");

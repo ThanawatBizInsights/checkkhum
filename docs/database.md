@@ -15,6 +15,7 @@ has been applied. Add a new one with `npx supabase migration new <name>`.
 | `20261006090100_renewal_job.sql` | Scheduled renewal job (pg_cron), staff reminders, job run log; replaces the renewal trigger |
 | `20261008090000_customer_portal_enum.sql` | Enquiry source `customer_portal` (own migration: a new enum value can't be used in the same transaction) |
 | `20261008090100_customer_portal.sql` | Customer portal: invitations, account links, policy documents + private storage bucket, portal functions, renewal requests |
+| `20261009090000_customer_self_registration.sql` | Self-registration: `customer_profiles` (trigger on `auth.users` + idempotent fallback), `portal_session()`, enquiries submitted while signed in, `portal_overview()` for unlinked logins |
 
 ## Entity relationship diagram
 
@@ -62,6 +63,8 @@ erDiagram
     POLICIES ||--o{ POLICY_DOCUMENTS : "has files"
     STAFF_USERS |o--o{ POLICY_DOCUMENTS : "uploads, approves"
     POLICIES |o--o{ ENQUIRIES : "renewal requested in"
+    AUTH_USERS ||--o| CUSTOMER_PROFILES : "has"
+    AUTH_USERS |o--o{ ENQUIRIES : "submitted while signed in"
 
     AUTH_USERS {
         uuid id PK "Supabase Auth"
@@ -230,6 +233,15 @@ erDiagram
         uuid invitation_id FK
         timestamptz linked_at
     }
+    CUSTOMER_PROFILES {
+        uuid id PK
+        uuid user_id FK,UK "auth.users.id"
+        text full_name
+        text email
+        text source "self_registration | invitation | other"
+        text privacy_notice_version
+        timestamptz privacy_acknowledged_at
+    }
     POLICY_DOCUMENTS {
         uuid id PK
         uuid policy_id FK
@@ -339,7 +351,24 @@ audit logs, staff details, other customers. There are no commission columns.
 | agent | read, create, revoke | read | read, upload, approve/hide, delete |
 | admin | read, create, revoke | read, unlink | read, upload, approve/hide, delete |
 
-**Linking** (`accept_customer_invitation()`, run at every customer sign-in): a staff
+**Self-registration** (`/customer/register`, Supabase Auth with email confirmation).
+A trigger on `auth.users` creates the login's `customer_profiles` row (unique per login;
+`private.ensure_customer_profile()` re-creates a missing one on first use; staff logins,
+marked `app_metadata.checkkhum_staff` by `createStaffUser`, get none, and inserting a
+`staff_users` row removes any profile). A profile grants nothing: no staff role, no CRM
+customer, no policy or document. `portal_overview()` gives an unlinked login its profile
+name and the enquiries **it submitted while signed in** (status only; the website server
+records the submitter from the verified session via `record_enquiry_submitter`, which
+only the secret key can call, only for fresh unclaimed enquiries, never for staff).
+
+| Who | customer_profiles |
+|---|---|
+| the login itself | read; change `full_name` only |
+| staff (any role) | read |
+| anyone else | none (no insert grant for anyone; rows come from the trigger and fallback) |
+
+**Linking** (`accept_customer_invitation()`, run at every customer sign-in through
+`portal_session()`): a staff
 member invites a chosen CRM customer at an email address; the login is linked only if
 its Supabase Auth email is **verified** and equals a pending, unexpired, unrevoked
 invitation, the customer isn't already linked, and the login isn't staff. Typing an
@@ -390,7 +419,7 @@ sequenceDiagram
 ```bash
 npm run db:start          # local Supabase (Docker)
 npm run db:reset          # apply migrations + fictional seed
-npm run db:test           # pgTAP: 160 assertions (access control, intake, CRM rules, renewal job, customer portal)
+npm run db:test           # pgTAP: 202 assertions (access control, intake, CRM rules, renewal job, customer portal, self-registration)
 npm run db:lint
 npm run build && npm start                          # with .env.local → local Supabase
 BASE_URL=http://localhost:3000 npm run verify:enquiries   # 31 end-to-end API checks

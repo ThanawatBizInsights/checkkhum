@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createUserClient } from "@/lib/server/supabase-user";
 
 /**
- * Landing page for links in Supabase Auth emails (invitation, password
- * reset). The email template sends `token_hash` + `type`; the token is
+ * Landing page for links in Supabase Auth emails (sign-up verification,
+ * invitation, password reset). The email template sends `token_hash` + `type`; the token is
  * verified here on the server, which signs the visitor in with an httpOnly
  * session cookie. A PKCE `code` is accepted too (reset requested in this
  * browser with the default template).
@@ -26,14 +26,28 @@ export async function GET(request: NextRequest) {
     const { error } = await db.auth.verifyOtp({ token_hash: tokenHash, type });
     if (!error) flow = type;
   } else if (code && code.length <= 200) {
-    const { error } = await db.auth.exchangeCodeForSession(code);
-    if (!error) flow = "code";
+    const { data, error } = await db.auth.exchangeCodeForSession(code);
+    // A code doesn't say what it was for; the session's amr claim does.
+    if (!error) flow = amrMethods(data.session?.access_token).includes("recovery") ? "code" : "email";
   }
 
-  if (!flow) return to("/customer/login?error=link");
+  if (!flow) {
+    // Expired or reused sign-up links go where a new one can be requested.
+    return to(type === "email" || type === "signup" ? "/customer/verify-email?error=expired" : "/customer/login?error=link");
+  }
   // Invited customers and password resets choose a password next.
   if (flow === "invite" || flow === "recovery" || flow === "code") {
     return to(`/customer/set-password?mode=${flow === "invite" ? "invite" : "recovery"}`);
   }
-  return to("/customer");
+  // Sign-up verified: the visitor is signed in; the portal creates/links the profile.
+  return to("/customer?verified=1");
+}
+
+function amrMethods(token: string | undefined): string[] {
+  try {
+    const claims = JSON.parse(Buffer.from((token ?? "").split(".")[1] ?? "", "base64url").toString("utf8")) as { amr?: { method: string }[] };
+    return (claims.amr ?? []).map((a) => a.method);
+  } catch {
+    return [];
+  }
 }

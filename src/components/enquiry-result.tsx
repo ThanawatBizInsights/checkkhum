@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { lineUrl, phoneChannel } from "@/lib/contact";
 import { Button, buttonClasses } from "./button";
+import Link from "next/link";
+import { useAccountState } from "./account-menu";
 import { DemoBadge } from "./demo-notice";
 import { LineButton } from "./line-links";
 import type { EnquiryResultState } from "./use-enquiry-submission";
@@ -64,6 +66,7 @@ export function EnquiryResult({
         <pre className="mb-4 whitespace-pre-wrap break-words rounded-[var(--radius-control)] bg-sky px-4 py-3.5 font-body text-base leading-[1.75] text-ink">
           {result.summary}
         </pre>
+        <AccountStatusLink />
         <ContactTeam
           note={
             <>
@@ -126,5 +129,16 @@ export function EnquiryResult({
         </button>
       </div>
     </div>
+  );
+}
+
+/** Signed-in customers can follow the request in their account. */
+function AccountStatusLink() {
+  const state = useAccountState();
+  if (state !== "customer") return null;
+  return (
+    <Link href="/customer" className={`${buttonClasses("primary", "md", true)} mb-2.5`}>
+      ดูสถานะคำขอที่บัญชีของฉัน
+    </Link>
   );
 }

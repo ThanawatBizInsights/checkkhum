@@ -2,8 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { authCookieOptions } from "@/lib/server/auth-cookies";
 
-/** Customer pages anyone may open (sign-in, reset request, email links). */
-const publicCustomerPaths = new Set(["/customer/login", "/customer/forgot-password", "/customer/auth/confirm"]);
+/** Customer pages anyone may open (sign-in, registration, verification and reset requests, email links). */
+const publicCustomerPaths = new Set([
+  "/customer/login",
+  "/customer/register",
+  "/customer/verify-email",
+  "/customer/forgot-password",
+  "/customer/auth/confirm",
+]);
 
 /**
  * Gate for the staff CRM (/staff) and the customer portal (/customer).

@@ -9,7 +9,7 @@ export type CustomerContext = {
   db: SupabaseClient<Database>;
   userId: string;
   email: string;
-  /** False until a staff invitation has been accepted with this verified email. */
+  /** False until a staff invitation has been accepted with this verified email (self-registered customers start unlinked). */
   linked: boolean;
 };
 
@@ -21,9 +21,10 @@ export type CustomerState =
 
 /**
  * Who is using the customer portal. Verifies the session with Supabase Auth
- * (getUser), keeps staff out, and links the login to its CRM customer when a
- * matching staff invitation is waiting (the database checks the email is
- * verified; nothing here trusts what the visitor typed). Cached per request.
+ * (getUser), keeps staff out, makes sure the login has its customer profile,
+ * and links it to a CRM customer only when a matching staff invitation is
+ * waiting (the database checks the email is verified; nothing here trusts
+ * what the visitor typed). Cached per request.
  */
 export const getCustomerState = cache(async (): Promise<CustomerState> => {
   const db = await createUserClient();
@@ -33,7 +34,7 @@ export const getCustomerState = cache(async (): Promise<CustomerState> => {
   const user = data?.user;
   if (error || !user) return { kind: "signed_out" };
 
-  const { data: status } = await db.rpc("accept_customer_invitation");
+  const { data: status } = await db.rpc("portal_session");
   if (status === "staff") return { kind: "staff" };
 
   return {
