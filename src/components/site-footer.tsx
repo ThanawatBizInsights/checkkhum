@@ -56,6 +56,11 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
+      <div className="wrap mt-10 border-t border-paper/15 pt-4 text-[0.9375rem]">
+        <Link href="/staff/login" rel="nofollow" className="inline-flex min-h-11 items-center hover:text-paper hover:underline">
+          เข้าสู่ระบบเจ้าหน้าที่
+        </Link>
+      </div>
     </footer>
   );
 }

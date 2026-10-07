@@ -125,6 +125,9 @@ product page, desktop                      product page, mobile
   commas instead of "·"; reminder dates use the Buddhist year like the rest of the UI;
   "add quotation" is a permanent section (it collapsed and hid its success message);
   wide tables no longer push the page sideways on phones (`min-w-0` on sheets).
+- **Way in from the public site:** a quiet "เข้าสู่ระบบเจ้าหน้าที่" link on its own row at the
+  bottom of the footer, below a hairline. It is plain footer text (not a button) so it
+  never competes with the quote path, with a 44px tap target and `rel="nofollow"`.
 
 ## Launch audit fixes
 

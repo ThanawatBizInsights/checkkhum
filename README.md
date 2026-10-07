@@ -135,6 +135,23 @@ production. Then, in the Supabase dashboard:
 3. To add staff later: invite the user under **Authentication › Users**, then
    insert their row into `staff_users` with a role (`admin`, `agent`, `viewer`).
 
+## Deploying on Vercel
+
+`vercel.json` sets `"framework": "nextjs"`. Without it, a Vercel project created
+before the app existed keeps the "Other" preset: the build succeeds and shows
+Ready, but only `public/` is deployed and `/` returns 404 NOT_FOUND.
+
+| Setting | Value |
+|---|---|
+| Framework Preset | Next.js |
+| Root Directory | blank (repository root) |
+| Build Command | default (`npm run build`, which runs `next build`) |
+| Output Directory | default (blank; never `public`) |
+| Install Command | default |
+
+Staff sign in at `/staff/login` (linked as "เข้าสู่ระบบเจ้าหน้าที่" in the footer);
+the dashboard is `/staff`.
+
 ## Demo mode
 
 If `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are both empty, the endpoint still
