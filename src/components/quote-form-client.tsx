@@ -1,27 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, type FormEvent } from "react";
+import { useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { findPlan, plans, type PlanId } from "@/content/products";
+import {
+  carBrandSuggestions,
+  evChargerOptions,
+  modelYears,
+  renewalTimingOptions,
+  repairOptions,
+  usageOptions,
+  vehicleTypeOptions,
+} from "@/content/quote-options";
 import { formatThaiPhone } from "@/lib/contact";
 import { isValidThaiPhone, normalizeThaiMobile, type EnquiryInput } from "@/lib/submissions";
 import { FormError, HoneypotField, MarketingConsent, TurnstileWidget } from "./anti-spam-fields";
 import { Button } from "./button";
-import { DemoNotice } from "./demo-notice";
+import { DemoNotice, IntakeUnavailableNotice } from "./demo-notice";
 import { EnquiryResult } from "./enquiry-result";
-import { ChipGroup, TextAreaField, TextField } from "./form-fields";
+import { ChipGroup, SelectField, TextAreaField, TextField } from "./form-fields";
+import { LineButton } from "./line-links";
 import { useEnquirySubmission } from "./use-enquiry-submission";
 
+export type SubmissionMode = "database" | "demo" | "unavailable";
+
 const emptyFields = {
+  carBrand: "",
   carModel: "",
   carYear: "",
+  renewalTiming: "",
+  usage: "",
+  repair: "",
+  evCharger: "",
+  vehicleType: "",
   destination: "",
+  tripStart: "",
   tripDays: "",
-  travellers: "",
+  travellers: "1",
   name: "",
   phone: "",
   message: "",
 };
+type Fields = typeof emptyFields;
 
 export type QuoteFormProps = {
   initialPlan?: PlanId;
@@ -31,10 +51,30 @@ export type QuoteFormProps = {
   idPrefix?: string;
 };
 
+/** Fields each insurance type needs before we can quote. */
+function missingFields(planId: PlanId, f: Fields): Record<string, string> {
+  const e: Record<string, string> = {};
+  if (planId === "travel") {
+    if (!f.destination.trim()) e.destination = "กรอกประเทศปลายทาง";
+    if (!/^\d{1,3}$/.test(f.tripDays.trim()) || Number(f.tripDays) < 1) e.tripDays = "กรอกจำนวนวันเดินทาง";
+  } else if (planId === "compulsory") {
+    if (!f.vehicleType) e.vehicleType = "เลือกประเภทรถ";
+  } else {
+    if (!f.carBrand.trim()) e.carBrand = "กรอกยี่ห้อรถ";
+    if (!f.carModel.trim()) e.carModel = "กรอกรุ่นรถ";
+    if (!f.carYear) e.carYear = "เลือกปีรถ";
+  }
+  if (!f.name.trim()) e.name = "กรอกชื่อเพื่อให้เราติดต่อกลับได้";
+  if (!isValidThaiPhone(f.phone)) e.phone = "กรอกเบอร์โทร 9–10 หลักที่ขึ้นต้นด้วย 0";
+  return e;
+}
+
+const fieldOrder = ["vehicleType", "carBrand", "carModel", "carYear", "destination", "tripStart", "tripDays", "travellers", "name", "phone"];
+
 /**
- * The quote slip. Used on the homepage, product pages and /quote.
- * Render it through `QuoteForm` (server), which supplies `demo` and the
- * Turnstile site key.
+ * The quotation form, used on the homepage, product pages and /quote. No
+ * account needed. Render it through `QuoteForm` (server), which supplies the
+ * submission mode and the Turnstile site key.
  */
 export function QuoteFormClient({
   initialPlan = "car-1",
@@ -42,32 +82,41 @@ export function QuoteFormClient({
   titleAs: TitleTag = "h2",
   showNotes = false,
   idPrefix = "quote",
-  demo,
+  mode,
   turnstileSiteKey,
-}: QuoteFormProps & { demo: boolean; turnstileSiteKey?: string }) {
+}: QuoteFormProps & { mode: SubmissionMode; turnstileSiteKey?: string }) {
   const [planId, setPlanId] = useState<PlanId>(initialPlan);
   const [channel, setChannel] = useState<"phone" | "line">("phone");
   const [marketing, setMarketing] = useState(false);
   const [fields, setFields] = useState(emptyFields);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const nameRef = useRef<HTMLInputElement>(null);
-  const phoneRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const submission = useEnquirySubmission();
+  const brandListId = useId();
+  const years = useMemo(() => modelYears(), []);
 
   const plan = findPlan(planId) ?? plans[0];
+  const isTravel = planId === "travel";
+  const isCompulsory = planId === "compulsory";
   const id = (s: string) => `${idPrefix}-${s}`;
-  const set = (key: keyof typeof emptyFields) => (e: { target: { value: string } }) =>
-    setFields((f) => ({ ...f, [key]: e.target.value }));
+  const set = (key: keyof Fields) => (e: { target: { value: string } }) => setFields((f) => ({ ...f, [key]: e.target.value }));
+  const choose = (key: keyof Fields) => (value: string) => setFields((f) => ({ ...f, [key]: value }));
+
+  function focusFirst(errs: Record<string, string>) {
+    const first = fieldOrder.find((k) => errs[k]);
+    if (!first) return;
+    const el = formRef.current?.querySelector<HTMLElement>(`#${id(first)}, [name="${id(first)}"]`);
+    el?.focus();
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const next: Record<string, string> = {};
-    if (!fields.name.trim()) next.name = "กรอกชื่อเพื่อให้เราติดต่อกลับได้";
-    if (!isValidThaiPhone(fields.phone)) next.phone = "กรอกเบอร์โทร 9–10 หลักที่ขึ้นต้นด้วย 0";
+    if (mode === "unavailable") return;
+    const next = missingFields(planId, fields);
     setErrors(next);
-    if (next.name) return nameRef.current?.focus();
-    if (next.phone) return phoneRef.current?.focus();
+    if (Object.keys(next).length) return focusFirst(next);
 
+    const t = (v: string) => v.trim() || undefined;
     const input: EnquiryInput = {
       type: "quote",
       planId: plan.id,
@@ -75,12 +124,17 @@ export function QuoteFormClient({
       name: fields.name.trim(),
       phone: formatThaiPhone(normalizeThaiMobile(fields.phone)),
       preferredChannel: channel,
-      ...(plan.kind === "car"
-        ? { carModel: fields.carModel.trim(), carYear: fields.carYear.trim() }
+      renewalTiming: isTravel ? undefined : t(fields.renewalTiming),
+      ...(isTravel
+        ? { destination: t(fields.destination), tripStart: t(fields.tripStart), tripDays: t(fields.tripDays), travellers: t(fields.travellers) }
         : {
-            destination: fields.destination.trim(),
-            tripDays: fields.tripDays.trim(),
-            travellers: fields.travellers.trim(),
+            carBrand: t(fields.carBrand),
+            carModel: t(fields.carModel),
+            carYear: t(fields.carYear),
+            usage: isCompulsory ? undefined : t(fields.usage),
+            repair: planId === "car-1" ? t(fields.repair) : undefined,
+            evCharger: planId === "ev" ? t(fields.evCharger) : undefined,
+            vehicleType: isCompulsory ? t(fields.vehicleType) : undefined,
           }),
       message: fields.message.trim() || undefined,
       marketingConsent: marketing,
@@ -89,8 +143,7 @@ export function QuoteFormClient({
     const serverErrors = await submission.submit(input);
     if (serverErrors) {
       setErrors(serverErrors);
-      if (serverErrors.name) nameRef.current?.focus();
-      else if (serverErrors.phone) phoneRef.current?.focus();
+      focusFirst(serverErrors);
     }
   }
 
@@ -99,7 +152,7 @@ export function QuoteFormClient({
       id="quote"
       data-quote-form
       aria-labelledby={id("title")}
-      className="rounded-[var(--radius-panel)] border-2 border-navy bg-paper px-5 py-6 shadow-[0_18px_40px_-24px_rgba(10,34,89,.45)] md:p-8"
+      className="rounded-[var(--radius-panel)] border-2 border-navy bg-paper px-4 py-6 shadow-[0_18px_40px_-24px_rgba(10,34,89,.45)] sm:px-5 md:p-8"
     >
       <TitleTag id={id("title")} className="text-[1.75rem]">
         {title}
@@ -117,35 +170,119 @@ export function QuoteFormClient({
             }}
           />
         </div>
+      ) : mode === "unavailable" ? (
+        <div className="mt-4 grid gap-4">
+          <IntakeUnavailableNotice>
+            ทักทีมงานทาง LINE พร้อมบอกประเภทประกันและรุ่นรถ เราจะเตรียมใบเสนอราคาให้
+          </IntakeUnavailableNotice>
+          <LineButton block>ขอใบเสนอราคาทาง LINE</LineButton>
+        </div>
       ) : (
         <>
-          <p className="mb-5 mt-1 text-base text-ink-soft">กรอกข้อมูลสั้น ๆ แล้วเราจะเทียบแผนจากหลายบริษัทให้ ไม่มีค่าใช้จ่าย</p>
-          <form onSubmit={onSubmit} noValidate className="relative grid gap-4">
+          <p className="mb-5 mt-1 text-base text-ink-soft">ไม่ต้องสมัครสมาชิก กรอกข้อมูลสั้น ๆ แล้วทีมงานจะติดต่อกลับพร้อมใบเสนอราคา</p>
+          <form ref={formRef} onSubmit={onSubmit} noValidate className="relative grid gap-5">
             <ChipGroup
-              legend="สนใจประกันแบบไหน"
+              legend="ประกันที่ต้องการ"
               name={id("plan")}
               value={planId}
-              onChange={setPlanId}
+              onChange={(v) => {
+                setPlanId(v);
+                setErrors({});
+              }}
               options={plans.map((p) => ({ value: p.id, label: p.label }))}
             />
 
-            {plan.kind === "car" ? (
-              <div className="flex gap-3">
-                <TextField id={id("car-model")} label="ยี่ห้อและรุ่นรถ" placeholder="เช่น Honda City" autoComplete="off" maxLength={120} value={fields.carModel} onChange={set("carModel")} error={errors.carModel} />
-                <TextField id={id("car-year")} label="ปีรถ (ค.ศ.)" placeholder="เช่น 2022" inputMode="numeric" maxLength={4} narrow value={fields.carYear} onChange={set("carYear")} error={errors.carYear} />
-              </div>
-            ) : (
+            {isTravel ? (
               <>
                 <TextField id={id("destination")} label="ประเทศปลายทาง" placeholder="เช่น ญี่ปุ่น" autoComplete="off" maxLength={100} value={fields.destination} onChange={set("destination")} error={errors.destination} />
-                <div className="flex gap-3">
-                  <TextField id={id("trip-days")} label="จำนวนวัน" placeholder="เช่น 7" inputMode="numeric" maxLength={3} value={fields.tripDays} onChange={set("tripDays")} error={errors.tripDays} />
-                  <TextField id={id("travellers")} label="จำนวนผู้เดินทาง" placeholder="เช่น 2" inputMode="numeric" maxLength={2} value={fields.travellers} onChange={set("travellers")} error={errors.travellers} />
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <TextField id={id("tripStart")} label="วันเริ่มเดินทาง (ไม่บังคับ)" type="date" value={fields.tripStart} onChange={set("tripStart")} error={errors.tripStart} />
+                  <TextField id={id("tripDays")} label="จำนวนวัน" inputMode="numeric" placeholder="เช่น 7" maxLength={3} value={fields.tripDays} onChange={set("tripDays")} error={errors.tripDays} />
+                  <TextField id={id("travellers")} label="จำนวนผู้เดินทาง" inputMode="numeric" maxLength={2} value={fields.travellers} onChange={set("travellers")} error={errors.travellers} />
                 </div>
+              </>
+            ) : (
+              <>
+                {isCompulsory && (
+                  <ChipGroup legend="ประเภทรถ" name={id("vehicleType")} value={fields.vehicleType} onChange={choose("vehicleType")} options={[...vehicleTypeOptions]} error={errors.vehicleType} />
+                )}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <TextField
+                      id={id("carBrand")}
+                      label={isCompulsory ? "ยี่ห้อรถ (ไม่บังคับ)" : "ยี่ห้อรถ"}
+                      placeholder="เช่น Toyota"
+                      list={brandListId}
+                      autoComplete="off"
+                      maxLength={60}
+                      value={fields.carBrand}
+                      onChange={set("carBrand")}
+                      error={errors.carBrand}
+                    />
+                    <datalist id={brandListId}>
+                      {carBrandSuggestions.map((b) => (
+                        <option key={b} value={b} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <TextField
+                    id={id("carModel")}
+                    label={isCompulsory ? "รุ่นรถ (ไม่บังคับ)" : "รุ่นรถ"}
+                    placeholder="เช่น Yaris Ativ"
+                    autoComplete="off"
+                    maxLength={60}
+                    value={fields.carModel}
+                    onChange={set("carModel")}
+                    error={errors.carModel}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <SelectField
+                    id={id("carYear")}
+                    label={isCompulsory ? "ปีรถ ค.ศ. (ไม่บังคับ)" : "ปีรถ (ค.ศ.)"}
+                    placeholder="เลือกปี"
+                    options={years}
+                    value={fields.carYear}
+                    onChange={set("carYear")}
+                    error={errors.carYear}
+                  />
+                  <SelectField
+                    id={id("renewalTiming")}
+                    label={isCompulsory ? "พ.ร.บ. เดิมหมดอายุเมื่อไร" : "ประกันเดิมหมดอายุเมื่อไร"}
+                    placeholder="เลือก (ไม่บังคับ)"
+                    options={[...renewalTimingOptions]}
+                    value={fields.renewalTiming}
+                    onChange={set("renewalTiming")}
+                    error={errors.renewalTiming}
+                  />
+                </div>
+                {planId === "ev" && (
+                  <ChipGroup legend="มีเครื่องชาร์จที่บ้านไหม (ไม่บังคับ)" name={id("evCharger")} value={fields.evCharger} onChange={choose("evCharger")} options={[...evChargerOptions]} error={errors.evCharger} />
+                )}
+                {planId === "car-1" && (
+                  <ChipGroup legend="อยากซ่อมแบบไหน (ไม่บังคับ)" name={id("repair")} value={fields.repair} onChange={choose("repair")} options={[...repairOptions]} error={errors.repair} />
+                )}
+                {!isCompulsory && (
+                  <ChipGroup legend="ลักษณะการใช้รถ (ไม่บังคับ)" name={id("usage")} value={fields.usage} onChange={choose("usage")} options={[...usageOptions]} error={errors.usage} />
+                )}
               </>
             )}
 
-            <TextField ref={nameRef} id={id("name")} label="ชื่อที่ให้เราเรียก" autoComplete="given-name" maxLength={120} required value={fields.name} onChange={set("name")} error={errors.name} />
-            <TextField ref={phoneRef} id={id("phone")} label="เบอร์โทรศัพท์" type="tel" inputMode="tel" autoComplete="tel" placeholder="08x-xxx-xxxx" required value={fields.phone} onChange={set("phone")} error={errors.phone} />
+            <div className="grid gap-4 border-t border-line pt-5 sm:grid-cols-2">
+              <TextField id={id("name")} label="ชื่อที่ให้เราเรียก" autoComplete="given-name" maxLength={120} required value={fields.name} onChange={set("name")} error={errors.name} />
+              <TextField
+                id={id("phone")}
+                label="เบอร์โทรศัพท์"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="08x-xxx-xxxx"
+                required
+                value={fields.phone}
+                onChange={set("phone")}
+                error={errors.phone}
+              />
+            </div>
 
             <ChipGroup
               legend="สะดวกให้ติดต่อกลับทาง"
@@ -159,15 +296,23 @@ export function QuoteFormClient({
             />
 
             {showNotes && (
-              <TextAreaField id={id("message")} label="รายละเอียดเพิ่มเติม (ไม่บังคับ)" placeholder="เช่น วันหมดอายุกรมธรรม์เดิม หรือทุนประกันที่ต้องการ" maxLength={1000} value={fields.message} onChange={set("message")} error={errors.message} />
+              <TextAreaField
+                id={id("message")}
+                label="รายละเอียดเพิ่มเติม (ไม่บังคับ)"
+                placeholder="เช่น ทุนประกันที่ต้องการ หรือคำถามถึงทีมงาน"
+                maxLength={1000}
+                value={fields.message}
+                onChange={set("message")}
+                error={errors.message}
+              />
             )}
 
             <MarketingConsent id={id("marketing")} checked={marketing} onChange={setMarketing} />
             <HoneypotField id={id("website")} {...submission.honeypot} />
             {turnstileSiteKey && <TurnstileWidget siteKey={turnstileSiteKey} onToken={submission.onTurnstileToken} />}
 
-            {demo && (
-              <DemoNotice>ตอนนี้ระบบรับคำขอยังไม่เชื่อมต่อ คำขอจะถูกบันทึกเป็นข้อมูลสาธิตในเบราว์เซอร์นี้ แล้วคุณส่งต่อให้เราทาง LINE หรือโทรได้ในขั้นถัดไป</DemoNotice>
+            {mode === "demo" && (
+              <DemoNotice>โหมดทดลองบนเครื่องนักพัฒนา: คำขอจะเก็บไว้ในเบราว์เซอร์นี้เท่านั้น ไม่ถึงทีมงาน</DemoNotice>
             )}
 
             <FormError message={submission.formError} />
@@ -176,7 +321,7 @@ export function QuoteFormClient({
               {submission.pending ? "กำลังส่งคำขอ" : "ขอใบเสนอราคา"}
             </Button>
             <p className="text-[0.9375rem] leading-relaxed text-ink-soft">
-              เราใช้ข้อมูลนี้เพื่อจัดทำใบเสนอราคาและติดต่อกลับเท่านั้น อ่าน
+              เราใช้ข้อมูลนี้เพื่อจัดทำใบเสนอราคาและติดต่อกลับเรื่องคำขอนี้ อ่าน
               <Link href="/privacy" className="text-teal-ink underline underline-offset-4">
                 ประกาศความเป็นส่วนตัว
               </Link>

@@ -13,7 +13,7 @@ export function formatThaiPhone(digits: string): string {
 export type ContactChannel = {
   /** Text to show: the real value, or the placeholder when not configured. */
   display: string;
-  /** Link target, or null when the detail is not configured yet. */
+  /** Link target, or null when the detail is not configured yet: hide the channel. */
   href: string | null;
 };
 
@@ -32,7 +32,14 @@ export const emailChannel: ContactChannel = contact.email
   ? { display: contact.email, href: `mailto:${contact.email}` }
   : { display: placeholders.email, href: null };
 
-export const hoursText = contact.hours || placeholders.hours;
+/** Business hours, or null when not configured (then not shown). */
+export const hoursText: string | null = contact.hours || null;
+
+/** Public company identity, only when both name and broker licence are configured. */
+export const companyIdentity: { name: string; licenceNo: string; address: string | null } | null =
+  siteConfig.legal.companyName && siteConfig.legal.brokerLicenseNo
+    ? { name: siteConfig.legal.companyName, licenceNo: siteConfig.legal.brokerLicenseNo, address: siteConfig.legal.address || null }
+    : null;
 
 export function legalValue(key: keyof typeof siteConfig.legal): string {
   return siteConfig.legal[key] || placeholders[key];

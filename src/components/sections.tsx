@@ -80,41 +80,6 @@ export function ProductOverview({ exclude, title = "ประกันที่�
   );
 }
 
-const helpItems = [
-  {
-    title: "เช็กความคุ้มครอง",
-    body: "อ่านเงื่อนไขกรมธรรม์ให้ แล้วสรุปเป็นภาษาที่เข้าใจง่าย ว่าคุ้มครองอะไรและไม่คุ้มครองอะไร",
-  },
-  {
-    title: "เปรียบเทียบเบี้ย",
-    body: "วางราคาและทุนประกันจากหลายบริษัทไว้ข้างกัน เพื่อให้คุณเลือกแผนที่คุ้มที่สุดสำหรับรถของคุณ",
-  },
-  {
-    title: "ช่วยประสานงาน",
-    body: "ตั้งแต่ทำกรมธรรม์ ต่ออายุ ไปจนถึงตอนเคลม เราช่วยติดต่อบริษัทประกันให้",
-  },
-];
-
-export function HelpSection() {
-  return (
-    <section aria-labelledby="help-title" className="bg-sky pb-16 pt-14">
-      <div className="wrap">
-        <h2 id="help-title" className="mb-6 text-[clamp(1.5rem,1.2rem+1.2vw,2rem)]">
-          เราช่วยอะไรคุณได้บ้าง
-        </h2>
-        <div className="grid gap-6 md:grid-cols-3 md:gap-8">
-          {helpItems.map((h) => (
-            <div key={h.title}>
-              <h3 className="text-teal-ink">{h.title}</h3>
-              <p className="mt-1 max-w-[30em]">{h.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 /** Navy band with phone, LINE and QR: the poster's footer. */
 export function ContactBand({ title = "สอบถาม หรือขอใบเสนอราคา" }: { title?: string }) {
   return (

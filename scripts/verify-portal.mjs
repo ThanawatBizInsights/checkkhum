@@ -134,34 +134,34 @@ const pdf = (label) => ({
 await fetch(`${MAIL}/api/v1/messages`, { method: "DELETE" });
 
 // ===========================================================================
-console.log("\n# Header navigation (signed out)");
+console.log("\n# Public navigation: no customer login, discreet staff link");
 {
   const { ctx, p } = await newPage(1366);
   await p.goto(B);
-  const btn = p.getByRole("button", { name: "เข้าสู่ระบบ" });
-  await btn.waitFor({ state: "visible" });
-  ok(await p.getByRole("link", { name: "ขอใบเสนอราคา" }).first().isVisible(), "desktop: quote button still in header");
-  await btn.click();
-  ok((await p.getByRole("link", { name: "ลูกค้า", exact: true }).getAttribute("href")) === "/customer/login", "desktop menu: ลูกค้า → /customer/login");
-  ok((await p.getByRole("link", { name: "เจ้าหน้าที่", exact: true }).getAttribute("href")) === "/staff/login", "desktop menu: เจ้าหน้าที่ → /staff/login");
-  await p.keyboard.press("Escape");
-  ok(!(await p.getByRole("link", { name: "ลูกค้า", exact: true }).isVisible()), "desktop menu closes with Escape");
+  ok(await p.getByRole("link", { name: "ขอใบเสนอราคา" }).first().isVisible(), "desktop: quote button in header");
+  const header = p.locator("header").first();
+  ok((await header.getByRole("button", { name: "เข้าสู่ระบบ" }).count()) === 0 && (await header.getByRole("link", { name: /เข้าสู่ระบบ|สมัคร|บัญชีของฉัน/ }).count()) === 0,
+    "desktop header: no login, registration or account links");
+  const footer = p.locator("footer");
+  ok((await footer.locator('a[href^="/customer"]').count()) === 0, "footer: no customer portal links");
+  const staffLink = footer.getByRole("link", { name: "สำหรับเจ้าหน้าที่", exact: true });
+  ok((await staffLink.getAttribute("href")) === "/staff/login" && (await staffLink.getAttribute("rel")) === "nofollow", "footer: สำหรับเจ้าหน้าที่ → /staff/login (nofollow)");
   await p.screenshot({ path: "/tmp/portal-header-desktop.png" });
   await ctx.close();
 
   const m = await newPage(390);
   await m.p.goto(B);
   await m.p.getByRole("button", { name: "เมนู" }).click();
-  const custLink = m.p.locator("nav").getByRole("link", { name: "ลูกค้า", exact: true });
-  await custLink.waitFor({ state: "visible" });
-  ok((await custLink.getAttribute("href")) === "/customer/login", "mobile menu: ลูกค้า login link");
-  ok((await m.p.locator("nav").getByRole("link", { name: "เจ้าหน้าที่", exact: true }).getAttribute("href")) === "/staff/login", "mobile menu: เจ้าหน้าที่ login link");
+  const nav = m.p.getByRole("navigation", { name: "เมนูหลัก" });
+  await nav.getByRole("link").first().waitFor({ state: "visible" });
+  ok((await nav.locator('a[href^="/customer"], a[href^="/staff"]').count()) === 0, "mobile menu: no customer or staff login links");
   ok((await m.p.evaluate(() => document.documentElement.scrollWidth)) <= 390, "mobile: no horizontal scroll with menu open");
   await m.p.screenshot({ path: "/tmp/portal-menu-mobile.png" });
-  await custLink.click();
-  await m.p.waitForURL(`${B}/customer/login`);
-  ok(true, "mobile: ลูกค้า opens the customer login page");
   await m.ctx.close();
+
+  // Existing accounts keep working: the portal pages are still there, just not linked.
+  const login = await fetch(`${B}/customer/login`);
+  ok(login.status === 200, "/customer/login still serves existing customers");
 
   const r = await fetch(`${B}/api/account`);
   ok((await r.json()).state === "signed_out" && /no-store/.test(r.headers.get("cache-control") ?? ""), "/api/account: signed_out, not cached");
@@ -271,19 +271,15 @@ let newCustomerPassword = "ลองรหัสผ่านใหม่-2569";
   ok(true, "invitation link cannot be used twice");
   await reuse.ctx.close();
 
-  // Header: signed in on a public page.
-  await p.goto(B);
-  await p.getByRole("button", { name: "เมนู" }).click();
-  const mine = p.locator("nav").getByRole("link", { name: "บัญชีของฉัน" });
-  await mine.waitFor({ state: "visible" });
-  ok((await mine.getAttribute("href")) === "/customer", "mobile menu shows บัญชีของฉัน when signed in");
-  await p.locator("nav").getByRole("button", { name: "ออกจากระบบ" }).click();
+  // Signing out happens on the dashboard (the portal is not in the public menu).
+  await p.goto(`${B}/customer`);
+  await p.getByRole("button", { name: "ออกจากระบบ" }).click();
   let after = "customer";
   for (let i = 0; i < 20 && after !== "signed_out"; i++) {
     await sleep(250);
     after = (await (await p.request.get(`${B}/api/account`)).json()).state;
   }
-  ok(after === "signed_out", "logout from the mobile menu ends the session");
+  ok(after === "signed_out", "ออกจากระบบ on the dashboard ends the session");
   await ctx.close();
 }
 
@@ -340,14 +336,10 @@ ok(A.p.url() === `${B}/customer`, "customer A signs in to /customer");
   await p.goto(`${B}/customer/set-password`);
   ok(!p.url().includes("/customer/set-password"), "set-password refused for a normal password session");
 
-  // Header on a public page shows the account menu.
+  // Signed in, public pages still show no account menu.
   await p.goto(`${B}/car-insurance`);
-  const acct = p.getByRole("button", { name: "บัญชีของฉัน" });
-  await acct.waitFor({ state: "visible" });
-  await acct.click();
-  ok((await p.getByRole("link", { name: "บัญชีของฉัน" }).getAttribute("href")) === "/customer", "desktop header: บัญชีของฉัน menu");
-  ok(await p.getByRole("button", { name: "ออกจากระบบ" }).isVisible(), "desktop header: ออกจากระบบ");
-  await p.screenshot({ path: "/tmp/portal-header-signed-in.png" });
+  await p.locator("main").waitFor();
+  ok((await p.locator("header").first().getByRole("button", { name: "บัญชีของฉัน" }).count()) === 0, "signed in: public header has no account menu");
 
   // Downloads.
   const own = await p.request.get(`${B}/customer/documents/${DOC_A}`, { maxRedirects: 0 });
@@ -602,8 +594,9 @@ let quoteRef;
   const p = regA.p;
   await p.goto(`${B}/quote?plan=car-1`);
   const form = p.locator("main form").first();
-  await form.getByLabel("ยี่ห้อและรุ่นรถ").fill("Mazda 2");
-  await form.getByLabel("ปีรถ (ค.ศ.)").fill("2021");
+  await form.getByLabel("ยี่ห้อรถ").fill("Mazda");
+  await form.getByLabel("รุ่นรถ").fill("2");
+  await form.getByLabel("ปีรถ (ค.ศ.)").selectOption("2021");
   await form.getByLabel("ชื่อที่ให้เราเรียก").fill("ทดสอบ สมัครเอ");
   await form.getByLabel("เบอร์โทรศัพท์").fill("0899990111");
   await sleep(3000); // the form's minimum fill time
@@ -613,10 +606,7 @@ let quoteRef;
   ok(/^CK-/.test(quoteRef), `quotation submitted while signed in (${quoteRef})`);
   ok(sql(`select submitted_by_user_id from public.enquiries where reference = '${quoteRef}'`) === regAId, "enquiry attributed to the signed-in customer");
   ok(sql(`select status || '/' || source from public.enquiries where reference = '${quoteRef}'`) === "new/web_quote_form", "it reaches the CRM pipeline as a new web enquiry");
-  const statusLink = p.getByRole("link", { name: "ดูสถานะคำขอที่บัญชีของฉัน" });
-  await statusLink.waitFor();
-  await statusLink.click();
-  await p.waitForURL(`${B}/customer`);
+  await p.goto(`${B}/customer`);
   ok((await p.getByText(`เลขอ้างอิง ${quoteRef}`).count()) === 1, "the request and its status appear in the dashboard");
   for (const path of ["/staff", "/staff/customers", "/staff/admin"]) {
     await p.goto(`${B}${path}`);

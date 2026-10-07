@@ -8,6 +8,18 @@ import { customerEnquiryStatus, customerQuotationStatus, type PortalOverview } f
 import { LineStatus, type LineLink } from "@/components/customer/line-status";
 import { requireCustomer } from "@/lib/server/customer-auth";
 import { getLineConfig, isLineLoginEmail } from "@/lib/server/line";
+import { signOutToHome } from "./_actions/auth";
+
+/** The portal is out of the public navigation, so signing out lives here. */
+function SignOut() {
+  return (
+    <form action={signOutToHome}>
+      <button type="submit" className="inline-flex min-h-11 items-center font-medium text-teal-ink underline underline-offset-4">
+        ออกจากระบบ
+      </button>
+    </form>
+  );
+}
 
 export const metadata: Metadata = { title: "บัญชีของฉัน", robots: { index: false, follow: false } };
 
@@ -62,11 +74,12 @@ export default async function CustomerDashboard({
               </p>
             )}
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <LineButton size="sm">คุยกับทีมงานผ่าน LINE</LineButton>
             <ButtonLink href="/quote" size="sm">
               ขอใบเสนอราคาใหม่
             </ButtonLink>
+            <SignOut />
           </div>
         </div>
       </section>
@@ -238,7 +251,10 @@ function NewCustomer({ overview, lineStatus, verified }: { overview: PortalOverv
     <>
       <section className="border-b border-line bg-sky py-8 md:py-12">
         <div className="wrap">
-          <h1 className="text-[clamp(1.75rem,1.4rem+1.4vw,2.4rem)] leading-tight">{name ? `ยินดีต้อนรับ คุณ${name}` : "บัญชีของฉัน"}</h1>
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+            <h1 className="text-[clamp(1.75rem,1.4rem+1.4vw,2.4rem)] leading-tight">{name ? `ยินดีต้อนรับ คุณ${name}` : "บัญชีของฉัน"}</h1>
+            <SignOut />
+          </div>
           {lineStatus}
           {verified && (
             <p role="status" className="mt-3 inline-block rounded-[var(--radius-control)] bg-mint px-3 py-1.5 text-[0.9375rem] text-teal-ink">
@@ -254,7 +270,7 @@ function NewCustomer({ overview, lineStatus, verified }: { overview: PortalOverv
             {enquiries.length ? "ขอใบเสนอราคาเพิ่ม" : "เริ่มจากขอใบเสนอราคา"}
           </h2>
           <p className="mt-2 max-w-[38em]">
-            บอกรุ่นรถหรือแผนเดินทาง เราจะเทียบแผนจากหลายบริษัทให้ ไม่มีค่าใช้จ่าย คำขอที่ส่งตอนเข้าสู่ระบบอยู่จะแสดงสถานะที่หน้านี้
+            บอกรุ่นรถหรือแผนเดินทาง ทีมงานจะติดต่อกลับพร้อมใบเสนอราคา คำขอที่ส่งตอนเข้าสู่ระบบอยู่จะแสดงสถานะที่หน้านี้
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <ButtonLink href="/quote">ขอใบเสนอราคา</ButtonLink>

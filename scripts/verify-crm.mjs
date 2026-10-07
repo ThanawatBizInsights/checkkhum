@@ -335,11 +335,16 @@ const agentCookies = await agent.ctx.cookies();
   const res = await fetch(`${B}/api/enquiries`, {
     method: "POST",
     headers: { "content-type": "application/json", origin: B, "x-real-ip": "198.51.100.77" },
-    body: JSON.stringify({ type: "quote", planId: "ev", carModel: "BYD Seal", carYear: "2025", name: "ทดสอบ จากเว็บ", phone: "0899990002", preferredChannel: "line", marketingConsent: false, idempotencyKey: crypto.randomUUID(), startedAt: Date.now() - 10000, website: "" }),
+    body: JSON.stringify({ type: "quote", planId: "ev", carBrand: "BYD", carModel: "Seal", carYear: "2025", renewalTiming: "within_1_month", evCharger: "yes", usage: "personal", name: "ทดสอบ จากเว็บ", phone: "0899990002", preferredChannel: "line", marketingConsent: false, idempotencyKey: crypto.randomUUID(), startedAt: Date.now() - 10000, website: "" }),
   });
   ok(res.status === 201, "website enquiry accepted");
   await agent.p.goto(`${B}/staff/enquiries?status=new`);
   ok((await agent.p.locator("text=ทดสอบ จากเว็บ").count()) === 1, "website enquiry appears in the CRM's new list");
+  await agent.p.locator("a", { hasText: "ทดสอบ จากเว็บ" }).first().click();
+  await agent.p.waitForURL(/\/staff\/enquiries\/[0-9a-f-]{36}$/);
+  const detail = await agent.p.locator("main").innerText();
+  ok(detail.includes("BYD Seal ปี 2025") && detail.includes("เครื่องชาร์จที่บ้าน") && detail.includes("ต้องการความคุ้มครอง"),
+    "CRM enquiry page shows brand/model/year, renewal timing and EV answers");
 
   await agent.p.goto(`${B}/staff`);
   const reminders = agent.p.locator("[data-reminder]");

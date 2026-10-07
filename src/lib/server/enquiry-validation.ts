@@ -46,19 +46,60 @@ const base = {
   turnstileToken: z.string().max(4096).optional(),
 };
 
-const quoteSchema = z.object({
-  type: z.literal("quote"),
-  planId: z.enum(Object.keys(planToProduct) as [keyof typeof planToProduct, ...(keyof typeof planToProduct)[]], {
-    error: "เลือกประเภทประกัน",
-  }),
-  carModel: optionalText(120, "ยี่ห้อและรุ่นรถ"),
-  carYear: optionalInt(1950, currentYear + 1, `ปีรถต้องอยู่ระหว่าง 1950–${currentYear + 1}`),
-  destination: optionalText(100, "ประเทศปลายทาง"),
-  tripDays: optionalInt(1, 365, "จำนวนวันต้องอยู่ระหว่าง 1–365"),
-  travellers: optionalInt(1, 20, "จำนวนผู้เดินทางต้องอยู่ระหว่าง 1–20"),
-  message: optionalText(1000, "รายละเอียด"),
-  ...base,
-});
+const optionalEnum = <T extends string>(values: readonly [T, ...T[]], message: string) =>
+  z.preprocess(emptyToUndefined, z.enum(values, { error: message }).optional());
+
+export const renewalTimings = ["within_1_month", "1_3_months", "over_3_months", "no_current_policy", "not_sure"] as const;
+
+const isoDate = z.preprocess(
+  emptyToUndefined,
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "เลือกวันเดินทาง")
+    .refine((v) => {
+      const d = Date.parse(`${v}T00:00:00Z`);
+      const today = Date.parse(new Date().toISOString().slice(0, 10) + "T00:00:00Z");
+      return !Number.isNaN(d) && d >= today - 86_400_000 && d <= today + 366 * 86_400_000;
+    }, "วันเดินทางต้องอยู่ภายใน 1 ปีนับจากวันนี้")
+    .optional(),
+);
+
+const quoteSchema = z
+  .object({
+    type: z.literal("quote"),
+    planId: z.enum(Object.keys(planToProduct) as [keyof typeof planToProduct, ...(keyof typeof planToProduct)[]], {
+      error: "เลือกประเภทประกัน",
+    }),
+    carBrand: optionalText(60, "ยี่ห้อรถ"),
+    carModel: optionalText(60, "รุ่นรถ"),
+    carYear: optionalInt(1950, currentYear + 1, `ปีรถต้องอยู่ระหว่าง 1950–${currentYear + 1}`),
+    renewalTiming: optionalEnum(renewalTimings, "เลือกช่วงเวลาที่ต้องการความคุ้มครอง"),
+    usage: optionalEnum(["personal", "commercial"], "เลือกลักษณะการใช้รถ"),
+    repair: optionalEnum(["dealer", "garage", "not_sure"], "เลือกการซ่อมที่ต้องการ"),
+    evCharger: optionalEnum(["yes", "no", "not_sure"], "เลือกข้อมูลเครื่องชาร์จ"),
+    vehicleType: optionalEnum(["sedan", "pickup", "van", "suv", "motorcycle", "other"], "เลือกประเภทรถ"),
+    destination: optionalText(100, "ประเทศปลายทาง"),
+    tripStart: isoDate,
+    tripDays: optionalInt(1, 365, "จำนวนวันต้องอยู่ระหว่าง 1–365"),
+    travellers: optionalInt(1, 20, "จำนวนผู้เดินทางต้องอยู่ระหว่าง 1–20"),
+    message: optionalText(1000, "รายละเอียด"),
+    ...base,
+  })
+  .superRefine((v, ctx) => {
+    const need = (field: string, message: string, present: unknown) => {
+      if (present === undefined || present === null || present === "") ctx.addIssue({ code: "custom", path: [field], message });
+    };
+    if (v.planId === "travel") {
+      need("destination", "กรอกประเทศปลายทาง", v.destination);
+      need("tripDays", "กรอกจำนวนวันเดินทาง", v.tripDays);
+    } else if (v.planId === "compulsory") {
+      need("vehicleType", "เลือกประเภทรถ", v.vehicleType);
+    } else {
+      need("carBrand", "กรอกยี่ห้อรถ", v.carBrand);
+      need("carModel", "กรอกรุ่นรถ", v.carModel);
+      need("carYear", "เลือกปีรถ", v.carYear);
+    }
+  });
 
 const contactSchema = z.object({
   type: z.literal("contact"),
@@ -77,7 +118,10 @@ export const enquirySchema = z.discriminatedUnion("type", [quoteSchema, contactS
 export type EnquiryRequest = z.infer<typeof enquirySchema>;
 
 /** Fields shown in the form; anything else is reported as a general error. */
-export const formFields = ["name", "phone", "message", "carModel", "carYear", "destination", "tripDays", "travellers", "planId", "preferredChannel"] as const;
+export const formFields = [
+  "name", "phone", "message", "carBrand", "carModel", "carYear", "renewalTiming", "usage", "repair", "evCharger",
+  "vehicleType", "destination", "tripStart", "tripDays", "travellers", "planId", "preferredChannel",
+] as const;
 
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};

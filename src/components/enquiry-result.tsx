@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { lineUrl, phoneChannel } from "@/lib/contact";
 import { Button, buttonClasses } from "./button";
-import Link from "next/link";
-import { useAccountState } from "./account-menu";
 import { DemoBadge } from "./demo-notice";
 import { LineButton } from "./line-links";
 import type { EnquiryResultState } from "./use-enquiry-submission";
@@ -49,24 +47,48 @@ export function EnquiryResult({
   if (result.kind === "stored") {
     return (
       <div>
-        <h3 ref={headingRef} tabIndex={-1} className="text-xl outline-none">
-          {result.duplicate ? "เราได้รับคำขอนี้แล้ว" : "ส่งคำขอแล้ว"}
+        <h3 ref={headingRef} tabIndex={-1} className="text-xl outline-none" data-testid="enquiry-confirmation">
+          {result.duplicate ? "เราได้รับคำขอนี้แล้ว" : "ได้รับคำขอใบเสนอราคาแล้ว"}
         </h3>
         <p className="mt-1 text-[0.9375rem] text-ink-soft">
           {result.duplicate
-            ? "คำขอเดียวกันนี้ส่งถึงเราแล้ว จึงไม่ได้สร้างคำขอซ้ำ ทีมงานจะติดต่อกลับในเวลาทำการ"
-            : "ทีมงานจะติดต่อกลับในเวลาทำการ เก็บเลขที่คำขอไว้อ้างอิงเมื่อคุยกับเรา"}
+            ? "คำขอเดียวกันนี้บันทึกในระบบแล้ว จึงไม่ได้สร้างคำขอซ้ำ"
+            : "บันทึกคำขอในระบบแล้ว เก็บเลขที่คำขอไว้อ้างอิงเมื่อคุยกับทีมงาน"}
         </p>
-        <div className="my-4 rounded-[var(--radius-control)] border-2 border-teal bg-mint px-4 py-3">
-          <p className="text-[0.9375rem] text-teal-ink">เลขที่คำขอ</p>
-          <p className="font-display text-2xl font-semibold tracking-wide text-navy" data-testid="enquiry-reference">
-            {result.reference}
-          </p>
+        <div className="my-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border-2 border-teal bg-mint px-4 py-3">
+          <div>
+            <p className="text-[0.9375rem] text-teal-ink">เลขที่คำขอ</p>
+            <p className="font-display text-2xl font-semibold tracking-wide text-navy" data-testid="enquiry-reference">
+              {result.reference}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(result.reference);
+                setCopyStatus("คัดลอกเลขที่คำขอแล้ว");
+              } catch {
+                setCopyStatus("คัดลอกไม่สำเร็จ จดเลขที่คำขอไว้แทนได้");
+              }
+            }}
+            className="inline-flex min-h-11 items-center rounded-full border-[1.5px] border-teal bg-paper px-4 font-semibold text-teal-ink"
+          >
+            คัดลอกเลขที่คำขอ
+          </button>
         </div>
+        <p role="status" className="-mt-2 mb-3 min-h-[1.5em] text-[0.9375rem] text-ink-soft">
+          {copyStatus}
+        </p>
+        <h4 className="text-base text-navy">ขั้นตอนต่อไป</h4>
+        <ol className="mb-4 mt-1 list-decimal pl-5 text-[0.9375rem]">
+          <li>ทีมงานตรวจข้อมูลและเตรียมใบเสนอราคา</li>
+          <li>ทีมงานติดต่อกลับตามช่องทางที่คุณเลือก</li>
+          <li>คุณเทียบแผนแล้วตัดสินใจเอง</li>
+        </ol>
         <pre className="mb-4 whitespace-pre-wrap break-words rounded-[var(--radius-control)] bg-sky px-4 py-3.5 font-body text-base leading-[1.75] text-ink">
           {result.summary}
         </pre>
-        <AccountStatusLink />
         <ContactTeam
           note={
             <>
@@ -75,7 +97,7 @@ export function EnquiryResult({
             </>
           }
         />
-        <button type="button" onClick={onReset} className="mt-3 py-1 font-medium text-teal-ink underline underline-offset-4">
+        <button type="button" onClick={onReset} className="mt-3 inline-flex min-h-11 items-center font-medium text-teal-ink underline underline-offset-4">
           ส่งคำขออื่น
         </button>
       </div>
@@ -132,13 +154,3 @@ export function EnquiryResult({
   );
 }
 
-/** Signed-in customers can follow the request in their account. */
-function AccountStatusLink() {
-  const state = useAccountState();
-  if (state !== "customer") return null;
-  return (
-    <Link href="/customer" className={`${buttonClasses("primary", "md", true)} mb-2.5`}>
-      ดูสถานะคำขอที่บัญชีของฉัน
-    </Link>
-  );
-}

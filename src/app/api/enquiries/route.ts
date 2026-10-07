@@ -9,8 +9,8 @@ import {
   saltedHash,
   verifyTurnstile,
 } from "@/lib/server/abuse";
-import { countLinks, enquirySchema, fieldErrors, planToProduct } from "@/lib/server/enquiry-validation";
-import { getBackendConfig, getTurnstileSecret } from "@/lib/server/env";
+import { countLinks, enquirySchema, fieldErrors, planToProduct, type EnquiryRequest } from "@/lib/server/enquiry-validation";
+import { getBackendConfig, getTurnstileSecret, missingEnquirySettings, submissionMode } from "@/lib/server/env";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
 import { createUserClient } from "@/lib/server/supabase-user";
 
@@ -28,6 +28,7 @@ const MAX_BODY_BYTES = 16 * 1024;
 
 type ErrorCode =
   | "unsupported_media_type"
+  | "not_configured"
   | "payload_too_large"
   | "invalid_json"
   | "forbidden_origin"
@@ -41,6 +42,7 @@ function fail(status: number, code: ErrorCode, message: string, extra: Record<st
 }
 
 const GENERIC_REJECTION = "ส่งคำขอไม่สำเร็จ ลองใหม่อีกครั้ง หรือติดต่อเราทาง LINE หรือโทรศัพท์";
+const NOT_CONFIGURED = "ตอนนี้ระบบรับคำขอออนไลน์ยังไม่พร้อม คำขอนี้ยังไม่ถูกบันทึก ติดต่อเราทาง LINE ได้เลย";
 
 export async function POST(request: NextRequest) {
   // --- Request shape -------------------------------------------------------
@@ -100,14 +102,16 @@ export async function POST(request: NextRequest) {
   }
 
   // --- Backend -------------------------------------------------------------
-  const config = getBackendConfig();
-  if (config.mode === "misconfigured") {
-    console.error(`[enquiries] backend misconfigured: ${config.problem}`);
-    return fail(500, "server_error", GENERIC_REJECTION);
-  }
-  if (config.mode === "demo") {
-    // No database yet: the browser keeps the enquiry as clearly labelled demo data.
+  const mode = submissionMode();
+  if (mode === "demo") {
+    // Local development without a database: the browser keeps a labelled demo copy.
     return NextResponse.json({ ok: true, mode: "demo" }, { status: 200 });
+  }
+  const config = getBackendConfig();
+  if (mode === "unavailable" || config.mode !== "database") {
+    // Names only, never values.
+    console.error(`[enquiries] intake not configured; missing: ${missingEnquirySettings().join(", ") || "unknown"}`);
+    return fail(503, "not_configured", NOT_CONFIGURED);
   }
 
   const db = getSupabaseAdmin(config.supabaseUrl, config.secretKey);
@@ -138,11 +142,7 @@ export async function POST(request: NextRequest) {
         name: input.name,
         phone: input.phone,
         preferred_channel: input.preferredChannel,
-        vehicle_description: input.type === "quote" && input.planId !== "travel" ? input.carModel ?? null : null,
-        model_year: input.type === "quote" && input.planId !== "travel" ? input.carYear ?? null : null,
-        travel_destination: input.type === "quote" && input.planId === "travel" ? input.destination ?? null : null,
-        travel_days: input.type === "quote" && input.planId === "travel" ? input.tripDays ?? null : null,
-        travellers: input.type === "quote" && input.planId === "travel" ? input.travellers ?? null : null,
+        ...quoteDetails(input),
         message: input.message ?? null,
         marketing_consent: input.marketingConsent,
         notice_version: siteConfig.privacyNoticeVersion,
@@ -184,4 +184,29 @@ async function signedInUserId(): Promise<string | null> {
   if (!userDb) return null;
   const { data } = await userDb.auth.getUser();
   return data.user?.id ?? null;
+}
+
+/** Structured quote answers for submit_enquiry; only the fields that belong to the chosen product. */
+function quoteDetails(input: EnquiryRequest) {
+  if (input.type !== "quote") return {};
+  const travel = input.planId === "travel";
+  const details: Record<string, string> = {};
+  if (travel) {
+    if (input.tripStart) details.trip_start = input.tripStart;
+  } else {
+    if (input.usage) details.usage = input.usage;
+    if (input.planId === "car-1" && input.repair) details.repair = input.repair;
+    if (input.planId === "ev" && input.evCharger) details.ev_home_charger = input.evCharger;
+    if (input.planId === "compulsory" && input.vehicleType) details.vehicle_type = input.vehicleType;
+  }
+  return {
+    vehicle_make: travel ? null : input.carBrand ?? null,
+    vehicle_model: travel ? null : input.carModel ?? null,
+    model_year: travel ? null : input.carYear ?? null,
+    renewal_timing: input.renewalTiming ?? null,
+    details,
+    travel_destination: travel ? input.destination ?? null : null,
+    travel_days: travel ? input.tripDays ?? null : null,
+    travellers: travel ? input.travellers ?? null : null,
+  };
 }

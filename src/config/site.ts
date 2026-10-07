@@ -1,9 +1,10 @@
 /**
- * The single source of truth for CheckKhum's name and contact details.
- * Every page, the header, footer, contact page, quote handoff and privacy
+ * The single source of truth for CheckKhum's business and contact details.
+ * Every page, the footer, contact page, quote confirmation and privacy
  * notice read from here. Leave a value as an empty string until the real
- * detail is confirmed: the site then shows the poster's placeholder text
- * instead of a working link. Never put an invented number here.
+ * detail is confirmed: public pages then simply don't show it (no fake
+ * number, no placeholder). Only the DRAFT privacy notice marks missing legal
+ * details, so the lawyer can see what to fill. Never put an invented value here.
  */
 export const siteConfig = {
   name: "เช็กคุ้ม",
@@ -35,7 +36,10 @@ export const siteConfig = {
    */
   privacyNoticeVersion: "draft-2026-10",
 
-  /** Legal entity details for the privacy notice. Fill in before publishing it. */
+  /**
+   * Legal entity details. Shown on the homepage ("ข้อมูลผู้ให้บริการ") only once
+   * filled in, and used by the privacy notice. Fill in before launch.
+   */
   legal: {
     companyName: "",
     address: "",

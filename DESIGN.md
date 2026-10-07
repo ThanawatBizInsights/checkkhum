@@ -214,9 +214,45 @@ product page, desktop                      product page, mobile
 - *Not numbered:* "check, compare, coordinate" reads as three things we do, not steps the
   user follows, so no 01/02/03 markers.
 
+## Quotation-first journey (stage 1)
+
+Plan: a visitor should reach a saved quotation request without an account, on a phone,
+in one screen. Decisions:
+
+- **Navigation.** Login/registration links and the header account menu are gone; the
+  portal still works at `/customer/login` for existing customers (sign-out now sits on
+  the dashboard). The footer's bottom row has a muted "สำหรับเจ้าหน้าที่" link
+  (`rel="nofollow"`, 44px target) to `/staff/login`.
+- **Homepage order:** headline + quote form (form is the first thing under the headline on
+  phones; the hero paragraph and image are desktop-only) → three checkable facts about the
+  site → product cards with "ขอใบเสนอราคา" per product → numbered process → coverage
+  guidance (tier table reused from the product page, พ.ร.บ./EV/travel notes) → FAQs
+  (`details`/`summary`, + rotates, motion-reduce safe) → contact band.
+- **Claims.** Removed "หลายบริษัท", "ไม่มีค่าใช้จ่าย", "คุ้มที่สุด" and similar; nothing about
+  licences, partners, prices, discounts, reviews, counts or response times until confirmed.
+  The licence line appears only when `legal.companyName` and `legal.brokerLicenseNo` are set.
+- **Quote form.** Plan chips first, then only that product's questions: brand (free text
+  with a suggestion list, not a verified database), model (free text), year (select, ค.ศ.
+  with พ.ศ. alongside), renewal timing (select), optional repair (ชั้น 1), home charger
+  (EV), usage; พ.ร.บ. asks vehicle type with brand/model optional; travel asks destination,
+  start date, days, travellers. Chip groups now carry errors with `aria-describedby`.
+- **Confirmation.** Only after the server returns a `CK-` reference: reference in a mint
+  panel with a copy button, "ขั้นตอนต่อไป" list, summary, LINE button (lin.ee/86TezJV).
+  Errors keep the visitor's answers and say nothing was saved.
+- **Missing contact details** are hidden rather than shown as `[เบอร์โทรศัพท์]` or an empty
+  QR box.
+
+Critique from screenshots (1366 and 390): the headline split "ประกัน / รถยนต์" on phones,
+fixed with a no-wrap span; the hero paragraph repeated the form's intro on phones, so it is
+hidden below `sm`. No horizontal scroll at 390px on any journey screen (checked by
+`verify:journey`).
+
 ## Open items for the client
 
-- Phone number, LINE ID, LINE QR image and company details in `src/config/site.ts`.
+- Phone number, LINE ID, LINE QR image, email, opening hours and company details
+  (legal name, address, broker licence number, privacy email) in `src/config/site.ts`;
+  each appears on the site only once set.
 - The logo and car image are cropped from the poster at its delivered resolution.
   Swap in the original vector logo and the full-size car render when available.
-- Forms save demo submissions only; see README "Demo mode".
+- Production needs `ENQUIRY_HASH_SALT` (and the Supabase variables) before forms accept
+  requests; see README "Demo mode (local development only)".

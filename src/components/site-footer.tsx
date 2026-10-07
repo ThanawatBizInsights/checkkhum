@@ -12,7 +12,7 @@ export function SiteFooter() {
             {siteConfig.name} {siteConfig.tagline}
           </p>
           <p className="mt-2 max-w-[30em] text-[0.9375rem]">
-            ช่วยเปรียบเทียบแผนประกันจากหลายบริษัท ก่อนคุณตัดสินใจ
+            ขอใบเสนอราคาประกันรถยนต์ พ.ร.บ. และประกันเดินทาง เทียบแผนก่อนตัดสินใจ
           </p>
         </div>
         <div>
@@ -30,19 +30,24 @@ export function SiteFooter() {
         <div>
           <h2 className="text-base text-paper">ติดต่อ</h2>
           <ul className="mt-2 grid gap-1 text-[0.9375rem]">
-            <li>โทร {phoneChannel.display}</li>
-            <li>
-              LINE{" "}
-              {lineChannel.href ? (
+            {phoneChannel.href && (
+              <li>
+                โทร{" "}
+                <a href={phoneChannel.href} className="hover:text-paper hover:underline">
+                  {phoneChannel.display}
+                </a>
+              </li>
+            )}
+            {lineChannel.href && (
+              <li>
+                LINE{" "}
                 <a href={lineChannel.href} target="_blank" rel="noopener noreferrer" data-line-link className="hover:text-paper hover:underline">
                   {lineChannel.display}
                   <span className="sr-only"> (เปิดในแท็บใหม่)</span>
                 </a>
-              ) : (
-                lineChannel.display
-              )}
-            </li>
-            <li>{hoursText}</li>
+              </li>
+            )}
+            {hoursText && <li>{hoursText}</li>}
             <li>
               <Link href="/contact" className="hover:text-paper hover:underline">
                 ช่องทางติดต่อทั้งหมด
@@ -56,12 +61,10 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="wrap mt-10 flex flex-wrap gap-x-6 border-t border-paper/15 pt-4 text-[0.9375rem]">
-        <Link href="/customer/login" rel="nofollow" className="inline-flex min-h-11 items-center hover:text-paper hover:underline">
-          เข้าสู่ระบบลูกค้า
-        </Link>
-        <Link href="/staff/login" rel="nofollow" className="inline-flex min-h-11 items-center hover:text-paper hover:underline">
-          เข้าสู่ระบบเจ้าหน้าที่
+      <div className="wrap mt-10 flex justify-end border-t border-paper/15 pt-2 text-[0.9375rem]">
+        {/* Discreet way in for the team; the CRM itself requires a staff login. */}
+        <Link href="/staff/login" rel="nofollow" className="inline-flex min-h-11 items-center text-paper/60 hover:text-paper hover:underline">
+          สำหรับเจ้าหน้าที่
         </Link>
       </div>
     </footer>

@@ -2,7 +2,7 @@
 -- Uses the fictional seed data (supabase/seed.sql).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(42);
+select plan(49);
 
 -- Helper: act as a given API role / Supabase Auth user for the rest of the tx.
 create or replace function pg_temp.act_as(p_role text, p_user uuid default null)
@@ -168,6 +168,45 @@ select is(
   (select count(*)::int from public.consent_records c join public.enquiries e on e.id = c.enquiry_id
     where e.contact_phone = '0800000150'), 2,
   'submission records quote-processing and marketing consent');
+
+-- Quote details (20261011090000): brand and model kept separately, renewal timing, product answers.
+create temp table r2 as select public.submit_enquiry(jsonb_build_object(
+  'type', 'quote', 'product', 'ev', 'name', 'ทดสอบ อีวี', 'phone', '0800000151',
+  'preferred_channel', 'phone', 'vehicle_make', 'BYD', 'vehicle_model', 'Atto 3', 'model_year', 2024,
+  'renewal_timing', 'within_1_month', 'details', jsonb_build_object('ev_home_charger', 'yes'),
+  'idempotency_key', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab1', 'notice_version', 'draft-2026-10',
+  'marketing_consent', true)) as res;
+select is(
+  (select v.make || '|' || v.model || '|' || v.description || '|' || v.is_ev
+     from public.enquiries e join public.vehicles v on v.id = e.vehicle_id where e.reference = (select res->>'reference' from r2)),
+  'BYD|Atto 3|BYD Atto 3|true', 'brand and model stored separately; description built from them');
+select is(
+  (select renewal_timing || '|' || (details ->> 'ev_home_charger') from public.enquiries where reference = (select res->>'reference' from r2)),
+  'within_1_month|yes', 'renewal timing and product-specific details stored');
+select is(
+  (select string_agg(c.purpose || '=' || c.granted || '@' || c.notice_version, ',' order by c.purpose)
+     from public.consent_records c join public.enquiries e on e.id = c.enquiry_id where e.reference = (select res->>'reference' from r2)),
+  'quote_processing=true@draft-2026-10,marketing=true@draft-2026-10',
+  'quote processing and optional marketing recorded as separate rows with the notice version');
+select is(
+  (select (public.submit_enquiry(jsonb_build_object(
+     'type', 'quote', 'product', 'compulsory', 'name', 'ทดสอบ พรบ', 'phone', '0800000152',
+     'preferred_channel', 'phone', 'details', '["not", "an", "object"]'::jsonb,
+     'idempotency_key', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab2', 'notice_version', 'draft-2026-10')) ->> 'duplicate')),
+  'false', 'non-object details are ignored rather than stored');
+select is((select details::text || '|' || (vehicle_id is null) from public.enquiries where contact_phone = '0800000152'), '{}|true',
+  'no details and no empty vehicle row for a พ.ร.บ. request without a car');
+select throws_ok(
+  $$select public.submit_enquiry(jsonb_build_object(
+     'type', 'quote', 'product', 'car_1', 'name', 'ทดสอบ', 'phone', '0800000153', 'preferred_channel', 'phone',
+     'renewal_timing', 'someday', 'idempotency_key', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab3', 'notice_version', 'draft-2026-10'))$$,
+  '23514', null, 'unknown renewal timing is rejected by the table check');
+select throws_ok(
+  $$select public.submit_enquiry(jsonb_build_object(
+     'type', 'quote', 'product', 'car_1', 'name', 'ทดสอบ', 'phone', '0800000154', 'preferred_channel', 'phone',
+     'details', jsonb_build_object('note', repeat('x', 3000)),
+     'idempotency_key', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaab4', 'notice_version', 'draft-2026-10'))$$,
+  '23514', null, 'oversized details are rejected by the table check');
 
 -- Existing customer details are not overwritten by the public form.
 select public.submit_enquiry(jsonb_build_object(

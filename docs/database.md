@@ -16,6 +16,7 @@ has been applied. Add a new one with `npx supabase migration new <name>`.
 | `20261008090000_customer_portal_enum.sql` | Enquiry source `customer_portal` (own migration: a new enum value can't be used in the same transaction) |
 | `20261008090100_customer_portal.sql` | Customer portal: invitations, account links, policy documents + private storage bucket, portal functions, renewal requests |
 | `20261010090000_line_login.sql` | LINE Login: `customer_line_accounts` (one LINE user per login), server-only `line_login_user()` / `link_line_account()`, LINE invitation links (`create_line_invitation()`, `accept_invitation_token()`), profile source `line` |
+| `20261011090000_quote_details.sql` | Quote form v2: `enquiries.renewal_timing` (fixed list) and `enquiries.details` (small JSON object of product answers: usage, repair, EV home charger, พ.ร.บ. vehicle type, trip start); `submit_enquiry` stores brand and model in `vehicles.make` / `vehicles.model` and no longer creates an empty vehicle for พ.ร.บ./travel requests |
 | `20261009090000_customer_self_registration.sql` | Self-registration: `customer_profiles` (trigger on `auth.users` + idempotent fallback), `portal_session()`, enquiries submitted while signed in, `portal_overview()` for unlinked logins |
 
 ## Entity relationship diagram
@@ -120,6 +121,8 @@ erDiagram
         smallint travel_days
         smallint travellers
         text message
+        text renewal_timing
+        jsonb details
         uuid assigned_to FK
         uuid idempotency_key UK
         text fingerprint "duplicate detection"
@@ -451,10 +454,11 @@ sequenceDiagram
 ```bash
 npm run db:start          # local Supabase (Docker)
 npm run db:reset          # apply migrations + fictional seed
-npm run db:test           # pgTAP: 240 assertions (access control, intake, CRM rules, renewal job, customer portal, self-registration, LINE)
+npm run db:test           # pgTAP: 247 assertions (access control, intake, CRM rules, renewal job, customer portal, self-registration, LINE)
 npm run db:lint
 npm run build && npm start                          # with .env.local → local Supabase
-BASE_URL=http://localhost:3000 npm run verify:enquiries   # 31 end-to-end API checks
+BASE_URL=http://localhost:3000 npm run verify:enquiries   # 43 end-to-end API checks
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey   # 68 browser checks: each product, confirmation, CRM, failures
 ```
 
 `verify:enquiries` refuses to run unless Supabase is local, because it
