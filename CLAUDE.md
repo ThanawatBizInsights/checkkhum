@@ -18,6 +18,7 @@ npm run db:start   # local Supabase (Docker); then db:reset, db:test, db:lint
 npm run verify:enquiries  # end-to-end API checks against LOCAL Supabase only
 npm run verify:crm        # CRM permissions + flows (LOCAL only, after db:reset)
 npm run verify:portal     # customer portal: invites, resets, A-vs-B isolation (LOCAL only, after db:reset)
+npm run verify:line       # LINE Login/LIFF with a local stand-in for LINE's verify API (LOCAL only, see script header)
 npm run audit             # launch audit: mobile, Thai text, links, anon access, secrets, headers
 ```
 
@@ -46,6 +47,7 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 | `src/app/(site)/customer/`, `src/lib/server/customer-auth.ts`, `src/components/customer/` | Customer portal (register, verify email, login, reset, dashboard, documents), `noindex` |
 | `src/app/staff/_actions/portal.ts`, `src/components/staff/portal-sheets.tsx` | Staff side of the portal: invitations, account links, policy documents |
 | `src/components/account-menu.tsx`, `src/app/api/account/route.ts` | Header "เข้าสู่ระบบ" / "บัญชีของฉัน" menu (desktop + mobile) |
+| `src/app/(site)/line/`, `src/components/line/`, `src/app/api/line/session/route.ts`, `src/lib/server/line.ts` | LINE Login / LIFF: entry page, client LIFF start-up, server token verification and session |
 | `supabase/templates/` | Thai auth email templates (sign-up confirmation, invite, recovery) using `token_hash` links |
 | `DESIGN.md` | Design tokens, layout, rationale |
 
@@ -81,7 +83,8 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
   `runAction(minRole, …)` and the staff member's own client (`staff.db`), so RLS applies.
   Never use the secret key in CRM code except for Auth admin calls that create logins:
   staff logins only after `runAction("admin", …)`; customer invitation emails only after
-  `runAction("agent", …)` has recorded the invitation through RLS. Every new action declares its minimum role
+  `runAction("agent", …)` has recorded the invitation through RLS; LINE customer logins
+  only in `/api/line/session` after LINE has verified the ID token. Every new action declares its minimum role
   (`viewer` < `agent` < `admin`), validates with zod, and uses `check(…, { expectRows: true })`
   on updates so an RLS-filtered update is reported, not silently "saved". Every page calls
   `requireStaff()` itself; layouts and `proxy.ts` are not the only gate.
@@ -99,6 +102,14 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
   them (`record_enquiry_submitter`, server only, from the verified session). Keep email
   confirmation required. Extend `supabase/tests/portal.test.sql`,
   `supabase/tests/registration.test.sql` and `scripts/verify-portal.mjs` with every change.
+- **LINE Login:** the browser sends only the LINE ID token; the server verifies it with
+  LINE (`verifyLineIdToken`, our channel ID) and never trusts LIFF profile data. Map LINE
+  users only through `link_line_account()` (one-to-one, never staff) and sign in only the
+  login `line_login_user()` returns. Linking LINE to an existing account needs the
+  account's session too; linking to a CRM customer needs a staff invitation (email or
+  LINE link). Never match by LINE name, email or phone. `LINE_API_BASE_URL` may only point
+  at localhost (tests). The LIFF ID is public; there is no LINE secret in this app.
+  Extend `supabase/tests/line.test.sql` and `scripts/verify-line.mjs` with every change.
 - **Workflow rules live in the database** (`private.enforce_enquiry_status`, author
   stamping, `convert_quotation_to_policy`). Mirror them in the UI (`nextStatuses`) but
   never rely on the UI alone.

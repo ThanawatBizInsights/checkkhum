@@ -15,6 +15,7 @@ has been applied. Add a new one with `npx supabase migration new <name>`.
 | `20261006090100_renewal_job.sql` | Scheduled renewal job (pg_cron), staff reminders, job run log; replaces the renewal trigger |
 | `20261008090000_customer_portal_enum.sql` | Enquiry source `customer_portal` (own migration: a new enum value can't be used in the same transaction) |
 | `20261008090100_customer_portal.sql` | Customer portal: invitations, account links, policy documents + private storage bucket, portal functions, renewal requests |
+| `20261010090000_line_login.sql` | LINE Login: `customer_line_accounts` (one LINE user per login), server-only `line_login_user()` / `link_line_account()`, LINE invitation links (`create_line_invitation()`, `accept_invitation_token()`), profile source `line` |
 | `20261009090000_customer_self_registration.sql` | Self-registration: `customer_profiles` (trigger on `auth.users` + idempotent fallback), `portal_session()`, enquiries submitted while signed in, `portal_overview()` for unlinked logins |
 
 ## Entity relationship diagram
@@ -64,6 +65,7 @@ erDiagram
     STAFF_USERS |o--o{ POLICY_DOCUMENTS : "uploads, approves"
     POLICIES |o--o{ ENQUIRIES : "renewal requested in"
     AUTH_USERS ||--o| CUSTOMER_PROFILES : "has"
+    AUTH_USERS ||--o| CUSTOMER_LINE_ACCOUNTS : "signs in with"
     AUTH_USERS |o--o{ ENQUIRIES : "submitted while signed in"
 
     AUTH_USERS {
@@ -233,6 +235,14 @@ erDiagram
         uuid invitation_id FK
         timestamptz linked_at
     }
+    CUSTOMER_LINE_ACCOUNTS {
+        uuid id PK
+        uuid user_id FK,UK "auth.users.id"
+        text line_user_id UK "verified LINE sub"
+        text display_name
+        text picture_url
+        timestamptz last_login_at
+    }
     CUSTOMER_PROFILES {
         uuid id PK
         uuid user_id FK,UK "auth.users.id"
@@ -367,6 +377,28 @@ only the secret key can call, only for fresh unclaimed enquiries, never for staf
 | staff (any role) | read |
 | anyone else | none (no insert grant for anyone; rows come from the trigger and fallback) |
 
+**LINE Login.** The website server verifies a LINE ID token with LINE
+(`/oauth2/v2.1/verify`, our channel ID), then uses the secret key for exactly three
+things: `line_login_user(line_user_id)` (which login, never staff), Auth admin calls to
+create or sign in that login, and `link_line_account()` (one LINE user ↔ one login,
+refuses staff, refuses a LINE user already mapped elsewhere). Customers can read only
+their own `customer_line_accounts` row; staff read all; only admins delete. LINE logins
+are ordinary customer logins: they see their own profile and submitted enquiries until
+linked to a CRM customer.
+
+**LINE invitation links** (`create_line_invitation(customer)`, agents and admins,
+`SECURITY INVOKER` so RLS applies): a 192-bit random token, shown once, stored as
+SHA-256 in `customer_invitations.token_hash` (email is then null), single-use, 7 days.
+`accept_invitation_token(token)` links the signed-in, non-staff, not-yet-linked login.
+
+| Who | customer_line_accounts | create_line_invitation | accept_invitation_token |
+|---|---|---|---|
+| customer | own row (read) | no | yes (own login) |
+| staff: viewer | read | no | no (staff refused) |
+| staff: agent | read | yes | no |
+| staff: admin | read, delete | yes | no |
+| website server (secret key) | via `link_line_account` / `line_login_user` only | | |
+
 **Linking** (`accept_customer_invitation()`, run at every customer sign-in through
 `portal_session()`): a staff
 member invites a chosen CRM customer at an email address; the login is linked only if
@@ -419,7 +451,7 @@ sequenceDiagram
 ```bash
 npm run db:start          # local Supabase (Docker)
 npm run db:reset          # apply migrations + fictional seed
-npm run db:test           # pgTAP: 202 assertions (access control, intake, CRM rules, renewal job, customer portal, self-registration)
+npm run db:test           # pgTAP: 240 assertions (access control, intake, CRM rules, renewal job, customer portal, self-registration, LINE)
 npm run db:lint
 npm run build && npm start                          # with .env.local → local Supabase
 BASE_URL=http://localhost:3000 npm run verify:enquiries   # 31 end-to-end API checks

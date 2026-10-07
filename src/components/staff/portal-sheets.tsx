@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  createLineInviteLink,
   deletePolicyDocument,
   inviteCustomer,
   revokeInvitation,
@@ -20,7 +21,7 @@ type Db = SupabaseClient<Database>;
 export async function CustomerPortalSheet({ staff, customerId, email }: { staff: StaffContext; customerId: string; email: string | null }) {
   const db: Db = staff.db;
   const [{ data: account }, { data: invitations }] = await Promise.all([
-    db.from("customer_accounts").select("id, linked_at").eq("customer_id", customerId).maybeSingle(),
+    db.from("customer_accounts").select("id, user_id, linked_at").eq("customer_id", customerId).maybeSingle(),
     db
       .from("customer_invitations")
       .select("id, email, created_at, expires_at, accepted_at, revoked_at, staff_users(full_name)")
@@ -30,6 +31,9 @@ export async function CustomerPortalSheet({ staff, customerId, email }: { staff:
   ]);
   const now = new Date().toISOString();
   const open = invitations?.find((i) => !i.accepted_at && !i.revoked_at && i.expires_at > now);
+  const { data: lineLink } = account
+    ? await db.from("customer_line_accounts").select("display_name").eq("user_id", account.user_id).maybeSingle()
+    : { data: null };
 
   return (
     <Sheet title="บัญชีลูกค้าออนไลน์" id="portal-title">
@@ -38,6 +42,7 @@ export async function CustomerPortalSheet({ staff, customerId, email }: { staff:
           <p className="flex flex-wrap items-center gap-2">
             <Pill tone="good">เชื่อมบัญชีแล้ว</Pill>
             <span className="text-[0.9375rem] text-ink-soft">ตั้งแต่ {formatDateTime(account.linked_at)}</span>
+            {lineLink && <Pill tone="good">LINE{lineLink.display_name ? `: ${lineLink.display_name}` : ""}</Pill>}
           </p>
           <p className="mt-2 text-[0.9375rem] text-ink-soft">
             ลูกค้าเห็นกรมธรรม์ ใบเสนอราคาที่ส่งแล้ว สถานะคำขอ รถ และเอกสารที่อนุมัติแล้ว ไม่เห็นหมายเหตุ งาน หรือประวัติการติดต่อภายใน
@@ -55,7 +60,7 @@ export async function CustomerPortalSheet({ staff, customerId, email }: { staff:
             <p className="flex flex-wrap items-center gap-2">
               <Pill tone="warn">รอลูกค้ายืนยัน</Pill>
               <span className="text-[0.9375rem] text-ink-soft">
-                ส่งถึง {open.email} เมื่อ {formatDateTime(open.created_at)}, หมดอายุ {formatDate(open.expires_at)}
+                {open.email ? `ส่งถึง ${open.email}` : "ลิงก์เชิญทาง LINE"} เมื่อ {formatDateTime(open.created_at)}, หมดอายุ {formatDate(open.expires_at)}
               </span>
             </p>
           ) : (
@@ -65,10 +70,18 @@ export async function CustomerPortalSheet({ staff, customerId, email }: { staff:
             <>
               <ActionForm action={inviteCustomer} submitLabel={open ? "ส่งคำเชิญใหม่" : "ส่งคำเชิญ"} pendingLabel="กำลังส่ง" className="mt-3 grid gap-3">
                 <input type="hidden" name="customer_id" value={customerId} />
-                <Field label="อีเมลของลูกค้า" htmlFor="invite-email" hint="ลูกค้าต้องยืนยันอีเมลนี้ก่อน จึงจะเห็นข้อมูล">
+                <Field label="อีเมลของลูกค้า" htmlFor="invite-email" hint="ใช้อีเมลที่ยืนยันกับลูกค้าแล้ว ลูกค้าต้องยืนยันอีเมลนี้ก่อน จึงจะเห็นข้อมูล">
                   <input id="invite-email" name="email" type="email" required defaultValue={open?.email ?? email ?? ""} className="field-input" />
                 </Field>
               </ActionForm>
+              <div className="mt-4 border-t border-line pt-4">
+                <p className="text-[0.9375rem] text-ink-soft">
+                  ลูกค้าใช้ LINE ไม่มีอีเมล? สร้างลิงก์เชิญ แล้ววางในแชท LINE ของลูกค้ารายนี้ ลูกค้าเปิดลิงก์ในแอป LINE แล้วระบบจะเชื่อมข้อมูลให้
+                </p>
+                <ActionForm action={createLineInviteLink} submitLabel="สร้างลิงก์เชิญทาง LINE" pendingLabel="กำลังสร้าง" variant="outline" className="mt-2 grid gap-2 break-all">
+                  <input type="hidden" name="customer_id" value={customerId} />
+                </ActionForm>
+              </div>
               {open && (
                 <ActionForm action={revokeInvitation} submitLabel="ยกเลิกคำเชิญ" variant="quiet" className="mt-2 grid gap-2">
                   <input type="hidden" name="id" value={open.id} />
@@ -155,6 +168,7 @@ export async function PolicyDocumentsSheet({ staff, policyId }: { staff: StaffCo
 const profileSource: Record<string, string> = {
   self_registration: "สมัครเอง",
   invitation: "คำเชิญ",
+  line: "LINE",
   other: "อื่น ๆ",
 };
 
@@ -170,8 +184,8 @@ export async function OnlineAccountsSheet({ staff }: { staff: StaffContext }) {
   return (
     <Sheet title="บัญชีลูกค้าออนไลน์ล่าสุด" id="online-title">
       <p className="text-[0.9375rem] text-ink-soft">
-        ลูกค้าที่สมัครเองเห็นเฉพาะคำขอที่ส่งตอนเข้าสู่ระบบ จะเห็นกรมธรรม์และเอกสารเมื่อทีมงานส่งคำเชิญจากหน้าข้อมูลลูกค้า
-        ไปที่อีเมลนี้ (ยืนยันกับลูกค้าก่อนว่าเป็นอีเมลของเขา)
+        ลูกค้าที่สมัครเองหรือเข้าด้วย LINE เห็นเฉพาะคำขอที่ส่งตอนเข้าสู่ระบบ จะเห็นกรมธรรม์และเอกสารเมื่อทีมงานส่งคำเชิญจากหน้าข้อมูลลูกค้า
+        (อีเมลที่ยืนยันกับลูกค้าแล้ว หรือลิงก์เชิญในแชท LINE ของลูกค้า)
       </p>
       {profiles?.length ? (
         <ul className="mt-3 divide-y divide-line">
@@ -182,7 +196,7 @@ export async function OnlineAccountsSheet({ staff }: { staff: StaffContext }) {
                 <div className="min-w-0">
                   <p className="font-semibold text-navy">{p.full_name}</p>
                   <p className="break-all text-[0.9375rem] text-ink-soft">
-                    {p.email}, {profileSource[p.source] ?? p.source} {formatDate(p.created_at)}
+                    {p.email.endsWith("@line.checkkhum.invalid") ? "บัญชี LINE (ไม่มีอีเมล)" : p.email}, {profileSource[p.source] ?? p.source} {formatDate(p.created_at)}
                   </p>
                 </div>
                 {customerId ? (

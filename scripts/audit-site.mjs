@@ -38,7 +38,7 @@ const warn = (msg) => {
   warnings.push(msg);
 };
 
-const PUBLIC = ["/", "/car-insurance", "/ev-insurance", "/compulsory-insurance", "/travel-insurance", "/quote", "/contact", "/privacy", "/staff/login", "/customer/login", "/customer/register", "/customer/verify-email", "/customer/forgot-password"];
+const PUBLIC = ["/", "/car-insurance", "/ev-insurance", "/compulsory-insurance", "/travel-insurance", "/quote", "/contact", "/privacy", "/staff/login", "/customer/login", "/customer/register", "/customer/verify-email", "/customer/forgot-password", "/line"];
 const CRM = [
   "/staff", "/staff/enquiries", "/staff/enquiries/55555555-5555-4555-8555-555555555502", "/staff/customers",
   "/staff/customers/33333333-3333-4333-8333-333333333301", "/staff/policies?within=30", "/staff/policies?within=90",
@@ -65,9 +65,14 @@ for (const width of [360, 390]) {
   for (const [ctx, pages, label] of [[anon, PUBLIC, "public"], [admin.ctx, CRM, "crm"]]) {
     const p = await ctx.newPage();
     const errors = [];
-    p.on("pageerror", (e) => errors.push(e.message));
-    p.on("console", (m) => m.type() === "error" && !m.location().url.includes("scdn.line-apps.com") && errors.push(m.text()));
+    let currentPath = "";
+    // On /line the LIFF SDK calls LINE's servers, which this test environment
+    // blocks; the page's own fallback is tested in verify:line. Ignore only those.
+    const lineBlocked = (text) => currentPath === "/line" && /ERR_TUNNEL_CONNECTION_FAILED|ERR_NAME_NOT_RESOLVED|LiffError/.test(text);
+    p.on("pageerror", (e) => !lineBlocked(e.message) && errors.push(e.message));
+    p.on("console", (m) => m.type() === "error" && !m.location().url.includes("scdn.line-apps.com") && !lineBlocked(m.text()) && errors.push(m.text()));
     for (const path of pages) {
+      currentPath = path;
       const res = await p.goto(B + path);
       await p.waitForLoadState("networkidle");
       const r = await p.evaluate(() => {
@@ -197,7 +202,7 @@ for (const width of [360, 390]) {
   const tables = [
     "customers", "vehicles", "enquiries", "quotations", "policies", "follow_up_activities", "follow_up_tasks", "renewal_tasks",
     "consent_records", "staff_users", "insurers", "audit_logs", "enquiry_status_history", "staff_reminders", "renewal_job_runs",
-    "customer_invitations", "customer_accounts", "policy_documents", "customer_profiles",
+    "customer_invitations", "customer_accounts", "policy_documents", "customer_profiles", "customer_line_accounts",
   ];
   const readable = [];
   for (const t of tables) {
@@ -215,6 +220,10 @@ for (const width of [360, 390]) {
     run_renewal_job: {},
     accept_customer_invitation: {},
     portal_session: {},
+    line_login_user: { p_line_user_id: "U1111111111111111111111111111111a" },
+    link_line_account: { p_user: "11111111-1111-4111-8111-111111111201", p_line_user_id: "U1111111111111111111111111111111a" },
+    create_line_invitation: { p_customer_id: "33333333-3333-4333-8333-333333333304" },
+    accept_invitation_token: { p_token: "0123456789abcdef0123456789abcdef0123456789abcdef" },
     record_enquiry_submitter: { p_reference: "CK-261001-DEM1", p_user: "11111111-1111-4111-8111-111111111201" },
     portal_overview: {},
     portal_request_renewal: { p_policy_id: "77777777-7777-4777-8777-777777777701" },
