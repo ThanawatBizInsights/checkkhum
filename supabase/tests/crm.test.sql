@@ -178,7 +178,7 @@ reset role;
 -- ===========================================================================
 select is((select count(*)::int from cron.job where jobname = 'checkkhum-renewal-job' and schedule = '5 23 * * *' and active), 1,
   'renewal job is scheduled daily (06:05 Bangkok)');
-select is((select count(*)::int from public.renewal_tasks), 3, 'seed run: 3 tasks for the 3 policies ending within 90 days');
+select is((select count(*)::int from public.renewal_tasks), 4, 'seed run: 4 tasks for the 4 policies ending within 90 days');
 select is((select count(*)::int from public.renewal_tasks t join public.policies p on p.id = t.policy_id
             where p.end_date > current_date + 90 or p.status <> 'active'), 0,
   'no tasks for policies beyond 90 days or not active');

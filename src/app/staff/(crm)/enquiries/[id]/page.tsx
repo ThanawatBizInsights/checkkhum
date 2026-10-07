@@ -130,6 +130,9 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
                 ["เบอร์โทร", formatPhone(e.contact_phone)],
                 ["ติดต่อกลับทาง", channelLabels[e.preferred_channel]],
                 ["ช่องทางที่เข้ามา", sourceLabels[e.source]],
+                ...(e.renewal_policy_id
+                  ? [["ขอต่ออายุ", <Link key="renew" href={`/staff/policies/${e.renewal_policy_id}`} className="font-semibold text-teal-ink underline underline-offset-4">เปิดกรมธรรม์เดิม</Link>] as [string, React.ReactNode]]
+                  : []),
                 ["เข้ามาเมื่อ", formatDateTime(e.created_at)],
                 ...(e.vehicles ? [["รถ", `${e.vehicles.description}${e.vehicles.model_year ? ` ปี ${e.vehicles.model_year}` : ""}${e.vehicles.is_ev ? " (EV)" : ""}`] as [string, string]] : []),
                 ...(e.travel_destination ? [["ปลายทาง", `${e.travel_destination}${e.travel_days ? `, ${e.travel_days} วัน` : ""}${e.travellers ? `, ${e.travellers} คน` : ""}`] as [string, string]] : []),

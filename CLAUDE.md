@@ -17,6 +17,7 @@ npm run check      # lint + typecheck + build; run before every commit
 npm run db:start   # local Supabase (Docker); then db:reset, db:test, db:lint
 npm run verify:enquiries  # end-to-end API checks against LOCAL Supabase only
 npm run verify:crm        # CRM permissions + flows (LOCAL only, after db:reset)
+npm run verify:portal     # customer portal: invites, resets, A-vs-B isolation (LOCAL only, after db:reset)
 npm run audit             # launch audit: mobile, Thai text, links, anon access, secrets, headers
 ```
 
@@ -42,6 +43,10 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 | `src/components/` | Reusable UI: `QuoteForm`, `ProductPage`, `ContactChannels`, `ContactBand`, `DemoNotice`, `Button` |
 | `src/app/(site)/` | Public pages, with header/footer/mobile quote bar |
 | `src/app/staff/` | Staff login and dashboard, separate layout, `noindex` |
+| `src/app/(site)/customer/`, `src/lib/server/customer-auth.ts`, `src/components/customer/` | Customer portal (login, reset, dashboard, documents), `noindex` |
+| `src/app/staff/_actions/portal.ts`, `src/components/staff/portal-sheets.tsx` | Staff side of the portal: invitations, account links, policy documents |
+| `src/components/account-menu.tsx`, `src/app/api/account/route.ts` | Header "เข้าสู่ระบบ" / "บัญชีของฉัน" menu (desktop + mobile) |
+| `supabase/templates/` | Thai auth email templates (invite, recovery) using `token_hash` links |
 | `DESIGN.md` | Design tokens, layout, rationale |
 
 ## Rules
@@ -74,11 +79,21 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
   Keep those labels tied to `isDatabaseConfigured()`.
 - **Staff CRM permissions:** CRM code reads and writes only through `requireStaff()` /
   `runAction(minRole, …)` and the staff member's own client (`staff.db`), so RLS applies.
-  Never use the secret key in CRM code except for Auth admin calls that create logins,
-  and only after `runAction("admin", …)`. Every new action declares its minimum role
+  Never use the secret key in CRM code except for Auth admin calls that create logins:
+  staff logins only after `runAction("admin", …)`; customer invitation emails only after
+  `runAction("agent", …)` has recorded the invitation through RLS. Every new action declares its minimum role
   (`viewer` < `agent` < `admin`), validates with zod, and uses `check(…, { expectRows: true })`
   on updates so an RLS-filtered update is reported, not silently "saved". Every page calls
   `requireStaff()` itself; layouts and `proxy.ts` are not the only gate.
+- **Customer portal:** customers have no direct access to CRM tables. They read through
+  `portal_overview()` (fixed customer-safe columns) and RLS on `policy_documents` /
+  `customer_accounts` / storage, always scoped by `private.current_customer_id()`. Never
+  add a customer policy to a CRM table or return internal columns (notes, staff, tasks,
+  drafts) from portal functions. Linking a login to a customer happens only in
+  `accept_customer_invitation()` (verified email + staff invitation); never link or look
+  up records from a typed email or phone. Documents reach customers only after staff
+  approval. Portal pages call `requireCustomer()`; routes use the customer's own client.
+  Extend `supabase/tests/portal.test.sql` and `scripts/verify-portal.mjs` with every change.
 - **Workflow rules live in the database** (`private.enforce_enquiry_status`, author
   stamping, `convert_quotation_to_policy`). Mirror them in the UI (`nextStatuses`) but
   never rely on the UI alone.

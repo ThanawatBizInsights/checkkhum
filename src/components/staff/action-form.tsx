@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, type ReactNode } from "react";
+import { useActionState, useEffect, useId, useRef, type ReactNode } from "react";
 import { buttonClasses } from "../button";
 
 export type ActionResult = { ok: boolean; message: string | null; fieldErrors?: Record<string, string> };
@@ -37,6 +37,7 @@ export function ActionForm({
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
   const ref = useRef<HTMLFormElement>(null);
+  const messageId = useId();
 
   useEffect(() => {
     if (state.ok && resetOnSuccess) ref.current?.reset();
@@ -46,17 +47,22 @@ export function ActionForm({
     // Point assistive tech and focus at the first field the server rejected.
     const form = ref.current;
     if (!form || !state.fieldErrors) return;
-    form.querySelectorAll("[aria-invalid]").forEach((el) => el.removeAttribute("aria-invalid"));
+    form.querySelectorAll("[aria-invalid]").forEach((el) => {
+      el.removeAttribute("aria-invalid");
+      if (el.getAttribute("aria-describedby") === messageId) el.removeAttribute("aria-describedby");
+    });
     let first: HTMLElement | null = null;
     for (const name of Object.keys(state.fieldErrors)) {
       const el = form.elements.namedItem(name);
       if (el instanceof HTMLElement) {
         el.setAttribute("aria-invalid", "true");
+        // Tie the error text to the field (unless it already has a hint).
+        if (!el.hasAttribute("aria-describedby")) el.setAttribute("aria-describedby", messageId);
         first ??= el;
       }
     }
     first?.focus();
-  }, [state]);
+  }, [state, messageId]);
 
   const fieldErrorList = state.fieldErrors ? Object.values(state.fieldErrors) : [];
 
@@ -76,7 +82,7 @@ export function ActionForm({
         </button>
       </div>
       {state.message && (
-        <div role={state.ok ? "status" : "alert"} className={`text-[0.9375rem] ${state.ok ? "text-teal-ink" : "text-error"}`}>
+        <div id={messageId} role={state.ok ? "status" : "alert"} className={`text-[0.9375rem] ${state.ok ? "text-teal-ink" : "text-error"}`}>
           <p>{state.message}</p>
           {!state.ok && fieldErrorList.length > 0 && (
             <ul className="mt-1 list-disc pl-5">

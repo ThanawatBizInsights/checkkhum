@@ -125,6 +125,39 @@ product page, desktop                      product page, mobile
   commas instead of "·"; reminder dates use the Buddhist year like the rest of the UI;
   "add quotation" is a permanent section (it collapsed and hid its success message);
   wide tables no longer push the page sideways on phones (`min-w-0` on sheets).
+- **Way in from the public site:** a quiet "เข้าสู่ระบบเจ้าหน้าที่" link on its own row at the
+  bottom of the footer, below a hairline. It is plain footer text (not a button) so it
+  never competes with the quote path, with a 44px tap target and `rel="nofollow"`.
+
+## Customer portal and login menu
+
+- **Login in the header:** an outline "เข้าสู่ระบบ" button sits beside the teal
+  "ขอใบเสนอราคา" so the quote stays the primary action. It opens a small panel:
+  "เข้าสู่ระบบในฐานะ" ลูกค้า / เจ้าหน้าที่. Signed in, the same button reads "บัญชีของฉัน"
+  with the account link and "ออกจากระบบ". Public pages stay static; the button asks
+  `/api/account` after load and keeps its space (invisible) until it knows, so the label
+  never flashes the wrong state. On phones the choices are two buttons at the bottom of
+  the "เมนู" panel. Escape and outside clicks close the desktop panel.
+- **The one memorable element:** each policy is a navy "policy card" (like the card in a
+  glovebox) with the insured car, and a coverage timeline: teal fill from the start date
+  to today, the last 60 days shaded as the renewal window, start and renewal dates under
+  it. In the window the status pill turns amber ("ต่ออายุภายใน N วัน") and the renewal
+  button becomes the teal primary. Below the card, on white: documents and the button.
+- **Everything else is quiet:** a sky greeting band with the LINE and new-quote buttons;
+  plain lists for requests (status chips in the customer's words, not CRM labels),
+  quotation cards with the premium in Prompt, and vehicles. Empty states say what will
+  appear and how to get it; an unlinked login gets one card with the LINE button.
+- **Auth pages:** a narrow white card with a navy border on the sky band, the same as the
+  staff login, inside the public header and footer so customers stay on the brand site.
+- Screenshots: desktop 1366px and mobile 390px of the portal, the header menu (signed
+  out and in) at 1366/1024/390px; no horizontal scroll at 390px.
+
+## Launch audit fixes
+
+- No text below 15px anywhere (CRM name/role/badges and the QR placeholder were 14px).
+- Pipeline strip on phones: two rows, open stages above and outcomes (won/lost) below,
+  so Thai labels wrap only at word boundaries instead of being squeezed into five columns.
+- Filter pills on the enquiry list are 44px tall touch targets.
 
 ## Launch audit fixes
 

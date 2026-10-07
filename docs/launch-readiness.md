@@ -15,6 +15,8 @@ on a freshly reset database with the fictional seed.
 | Website forms, database mode | browser | 28/28 | Pages render; EV plan preselect; double-click stores one enquiry; duplicate resubmission shows the same reference; server validation shown on the field; contact form stored |
 | LINE links | browser | 57/57 | Every LINE link is `https://lin.ee/86TezJV`, `target="_blank"`, `rel="noopener noreferrer"`; hero, sticky bar, official Add Friend button, confirmation; new tab gets no referrer and no opener; no form details in the URL; quotation still saved |
 | Website, demo mode (no database) | browser | 28/28 | Forms validate and store labelled demo data in the browser; CRM reports "not connected" |
+| Customer portal (8 October) | `npm run verify:portal` | 109/109 | Header "เข้าสู่ระบบ" menu desktop + mobile (ลูกค้า/เจ้าหน้าที่, Escape, no horizontal scroll), "บัญชีของฉัน" + logout; anon redirects, REST/RPC/storage refused; agent uploads and approves documents, fake PDF refused, viewer read-only; staff invite → Mailpit email → token_hash link → set password → linked only after verification, link single-use, staff email refused; logout; password reset (no account discovery, old password stops working); customer A sees only own policy, vehicle, renewal date, approved document; direct URLs to B's / unapproved / unknown documents → 404; signed URL serves the file; set-password refused for a normal password session; renewal request reaches the CRM as a new enquiry, no duplicates; A blocked from 5 staff pages, staff document route, 14 CRM tables, staff RPCs, B's files (sign, download, list), uploads, self-linking, self-approval; staff server actions replayed with A's session refused; B sees none of A's data; unlinked login gets the empty state + LINE; staff logging in on the customer page go to /staff |
+| Database, portal (8 October) | `npm run db:test` | 160/160 | Adds 56 portal assertions: RLS on new tables, private bucket, approval stamping, linking rules (unverified, staff, no invitation), A/B isolation in tables, storage and functions, no notes/drafts/staff names in the overview, invitations can't be redirected |
 | Scheduler | manual | pass | A temporary one-minute pg_cron schedule ran the renewal job by itself (`succeeded`), logged as `schedule`, created no duplicates; removed afterwards |
 
 ## Fixed during this run
@@ -44,21 +46,28 @@ on a freshly reset database with the fictional seed.
 
 Must be done before real customers use the site:
 
-1. **Apply the database to the live Supabase project.** `npx supabase link` +
-   `npx supabase db push` (migrations only, never the seed), then Security Advisor shows no
-   findings and **Allow new users to sign up** is off. Nothing has been applied to the
-   live `checkkhum` project yet.
+1. **Apply the database to the live Supabase project.** The first 7 migrations are on the
+   live `checkkhum` project (checked 7 October); the two customer portal migrations
+   (`20261008090000`, `20261008090100`) still need `npx supabase db push` (migrations
+   only, never the seed). Then Security Advisor shows no findings and **Allow new users
+   to sign up** is off.
 2. **Deploy with the environment variables** `SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
    `SUPABASE_PUBLISHABLE_KEY`, `ENQUIRY_HASH_SALT` set in the hosting provider, on a
    domain with HTTPS. Confirm the platform sets `x-real-ip` / `x-forwarded-for`
    itself (Vercel does), or per-IP rate limits can be bypassed.
 3. **Create the first admin** (README › Staff CRM) and the staff accounts.
+3a. **Customer portal email setup** (README › Customer portal): Site URL, redirect URL,
+   the two Thai email templates, and your own SMTP sender. Without them invitations
+   and password resets won't arrive or won't sign the customer in.
 4. **Contact details** in `src/config/site.ts`: phone number, LINE QR image, opening
    hours, email. Without a phone number the site shows "[เบอร์โทรศัพท์]".
 5. **Legal**: company name, address and broker licence number in `src/config/site.ts`;
    privacy notice reviewed by a lawyer, highlighted gaps filled (retention periods,
    processors, DPO), then remove the draft banner and `noindex`. Bump
    `privacyNoticeVersion` when the wording is final.
+5a. **Privacy notice for customer accounts**: the draft notice doesn't yet describe the
+   portal (login email, account link, stored policy documents and receipts). Add it
+   before inviting customers.
 6. **Check the LINE link on a phone** (see above).
 
 Strongly recommended:

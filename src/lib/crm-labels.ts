@@ -50,6 +50,7 @@ export const sourceLabels: Record<string, string> = {
   line: "LINE",
   walk_in: "หน้าร้าน",
   referral: "แนะนำต่อ",
+  customer_portal: "บัญชีลูกค้าออนไลน์",
 };
 
 export const quotationStatusLabels: Record<string, string> = {
