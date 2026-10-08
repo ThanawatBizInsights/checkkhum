@@ -4,6 +4,7 @@ import { buttonClasses } from "@/components/button";
 import { CheckMark, productIcons } from "@/components/icons";
 import { TierTable } from "@/components/product-page";
 import { QuoteForm } from "@/components/quote-form";
+import { quoteSplit } from "@/components/quote-layout";
 import { ContactBand } from "@/components/sections";
 import { faqs, processSteps, siteFacts } from "@/content/journey";
 import { coverageDisclaimer, productOrder, products } from "@/content/products";
@@ -20,7 +21,7 @@ export default function HomePage() {
   return (
     <>
       <section className="bg-gradient-to-b from-paper to-sky pb-12 pt-7 lg:pb-[72px] lg:pt-14">
-        <div className="wrap grid gap-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:grid-rows-[auto_1fr] lg:gap-x-14 lg:gap-y-8">
+        <div className={`wrap ${quoteSplit} lg:grid-rows-[auto_1fr] lg:gap-y-8`}>
           <div>
             <h1 className="text-[clamp(1.875rem,1.3rem+2.6vw,3rem)] leading-[1.3]">
               ขอใบเสนอราคา<span className="whitespace-nowrap">ประกันรถยนต์</span>

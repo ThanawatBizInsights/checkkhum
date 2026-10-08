@@ -47,12 +47,25 @@ export const vehicleTypeOptions = [
   { value: "other", label: "อื่น ๆ" },
 ] as const;
 
-/** Model years offered in the form: next year back 30 years. */
+/** Thai Buddhist Era year for a Gregorian (ค.ศ.) year. */
+export const buddhistYear = (gregorian: number) => gregorian + 543;
+
+/** "2569 (2026)": Buddhist Era first, Gregorian in brackets. */
+export function modelYearLabel(gregorian: number | string): string {
+  const y = Number(gregorian);
+  return `${buddhistYear(y)} (${y})`;
+}
+
+/**
+ * Model years offered in the form: next year back 30 years. Values stay
+ * Gregorian (what the API validates and the database stores); labels show
+ * the Buddhist Era year first, e.g. value "2026", label "2569 (2026)".
+ */
 export function modelYears(now = new Date()): { value: string; label: string }[] {
   const latest = now.getFullYear() + 1;
   return Array.from({ length: 31 }, (_, i) => {
     const y = latest - i;
-    return { value: String(y), label: `${y} (พ.ศ. ${y + 543})` };
+    return { value: String(y), label: modelYearLabel(y) };
   });
 }
 

@@ -55,8 +55,8 @@ const journeys = [
     fill: async (f) => {
       await f.getByLabel("ยี่ห้อรถ").fill("Honda");
       await f.getByLabel("รุ่นรถ").fill("City");
-      await f.getByLabel("ปีรถ (ค.ศ.)").selectOption("2022");
-      await f.getByLabel("ประกันเดิมหมดอายุเมื่อไร").selectOption("1_3_months");
+      await f.getByLabel("ปีรถ (พ.ศ.)").selectOption("2022");
+      await f.getByLabel("ประกันเดิมหมดเมื่อไร").selectOption("1_3_months");
       await f.getByRole("radio", { name: "ซ่อมศูนย์", exact: true }).check();
       await f.getByRole("radio", { name: "ใช้ส่วนตัว", exact: true }).check();
     },
@@ -67,8 +67,8 @@ const journeys = [
     fill: async (f) => {
       await f.getByLabel("ยี่ห้อรถ").fill("BYD");
       await f.getByLabel("รุ่นรถ").fill("Dolphin");
-      await f.getByLabel("ปีรถ (ค.ศ.)").selectOption("2024");
-      await f.getByLabel("ประกันเดิมหมดอายุเมื่อไร").selectOption("no_current_policy");
+      await f.getByLabel("ปีรถ (พ.ศ.)").selectOption("2024");
+      await f.getByLabel("ประกันเดิมหมดเมื่อไร").selectOption("no_current_policy");
       await f.locator("fieldset", { hasText: "เครื่องชาร์จ" }).getByRole("radio", { name: "มี", exact: true }).check();
     },
     expect: `BYD|Dolphin|2024|no_current_policy|{"ev_home_charger": "yes"}`,
@@ -77,7 +77,7 @@ const journeys = [
     plan: "compulsory", name: `ทดสอบ พรบ ${runId}`, phone: `08100${runId}3`, product: "compulsory", marketing: false,
     fill: async (f) => {
       await f.getByRole("radio", { name: "รถกระบะ", exact: true }).check();
-      await f.getByLabel("พ.ร.บ. เดิมหมดอายุเมื่อไร").selectOption("within_1_month");
+      await f.getByLabel("พ.ร.บ. เดิมหมดเมื่อไร").selectOption("within_1_month");
     },
     expect: `-|-|-|within_1_month|{"vehicle_type": "pickup"}`,
   },
@@ -141,6 +141,77 @@ for (const j of journeys) {
 ok(sql(`select travel_destination || '/' || travel_days || '/' || travellers from public.enquiries where reference = '${refs[3]}'`) === "ญี่ปุ่น/6/2",
   "travel: destination, days and travellers saved");
 
+console.log("\n# Vehicle year: Buddhist Era shown, Gregorian submitted");
+{
+  const { ctx, p } = await phonePage();
+  await p.goto(`${B}/quote?plan=car-1`);
+  const form = p.locator("main form").first();
+  const year = form.getByLabel("ปีรถ (พ.ศ.)");
+  const labelText = (await p.locator('label[for$="carYear"]').first().innerText()).trim();
+  ok(labelText === "ปีรถ (พ.ศ.)", `year label reads exactly "ปีรถ (พ.ศ.)" (${labelText})`);
+  const opts = await year.locator("option").evaluateAll((os) => os.map((o) => [o.value, o.textContent]));
+  const next = new Date().getFullYear() + 1;
+  ok(opts[0][0] === "" && opts[0][1] === "เลือกปีรถ", `empty option is "เลือกปีรถ"`);
+  ok(opts.length === 32 && opts[1][0] === String(next) && opts[1][1] === `${next + 543} (${next})` && opts[31][0] === String(next - 30),
+    `31 years, newest first, same range as before (${opts[1][1]} … ${opts[31][1]})`);
+  ok(opts.slice(1).every(([v, t]) => t === `${Number(v) + 543} (${v})`), "every option is \"พ.ศ. (ค.ศ.)\" with value = ค.ศ.");
+
+  await year.selectOption({ label: "2569 (2026)" });
+  ok((await year.inputValue()) === "2026", `choosing "2569 (2026)" sets the value 2026`);
+  await form.getByLabel("ยี่ห้อรถ").fill("Toyota");
+  await form.getByLabel("รุ่นรถ").fill("Yaris Ativ");
+  await form.getByLabel("ชื่อที่ให้เราเรียก").fill(`ทดสอบ ปีรถ ${runId}`);
+  await form.getByLabel("เบอร์โทรศัพท์").fill(`08100${runId}5`);
+  let sentYear;
+  p.on("request", (r) => {
+    if (r.url().endsWith("/api/enquiries") && r.method() === "POST") sentYear = JSON.parse(r.postData() ?? "{}").carYear;
+  });
+  await sleep(3200);
+  await form.getByRole("button", { name: "ขอใบเสนอราคา" }).click();
+  await p.getByTestId("enquiry-reference").waitFor({ timeout: 15000 });
+  const ref = (await p.getByTestId("enquiry-reference").innerText()).trim();
+  ok(sentYear === "2026", `request body carries carYear "2026" (${sentYear})`);
+  ok(sql(`select v.model_year from public.enquiries e join public.vehicles v on v.id = e.vehicle_id where e.reference = '${ref}'`) === "2026",
+    "database stores model_year 2026 (Gregorian, unchanged)");
+  ok((await p.locator("main pre").first().innerText()).includes("ปีรถ: 2569 (2026)"), "confirmation summary shows ปีรถ: 2569 (2026)");
+
+  // A year set by value (as when editing a kept answer) shows its matching label.
+  await p.goto(`${B}/quote?plan=car-1`);
+  await p.locator("main form").first().getByLabel("ปีรถ (พ.ศ.)").selectOption("2021");
+  ok((await p.locator('select[id$="carYear"] option:checked').first().innerText()) === "2564 (2021)", "value 2021 selects the option 2564 (2021)");
+
+  await p.goto(`${B}/quote?plan=compulsory`);
+  const cLabel = (await p.locator('label[for$="carYear"]').first().innerText()).trim();
+  ok(cLabel.startsWith("ปีรถ (พ.ศ.)") && cLabel.includes("ไม่บังคับ"), `พ.ร.บ.: same label, marked optional (${cLabel.replace(/\s+/g, " ")})`);
+  await ctx.close();
+}
+
+console.log("\n# Form layout at phone, tablet and desktop widths");
+// Paired fields share a row only when the form itself is at least 32rem wide inside.
+for (const [w, expected, paired] of [[390, 358, false], [768, 704, true], [1024, 520, false], [1280, 600, true], [1366, 600, true]]) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
+  const p = await ctx.newPage();
+  for (const path of ["/", "/quote?plan=car-1", "/car-insurance"]) {
+    await p.goto(`${B}${path}`);
+    const formBox = await p.locator("[data-quote-form]").first().boundingBox();
+    const scroll = await p.evaluate(() => document.documentElement.scrollWidth);
+    const top = async (sel) => (await p.locator(sel).first().boundingBox()).y;
+    const [brand, model, year, renewal] = await Promise.all(['input[id$="carBrand"]', 'input[id$="carModel"]', 'select[id$="carYear"]', 'select[id$="renewalTiming"]'].map(top));
+    const yearBox = await p.locator('select[id$="carYear"]').first().boundingBox();
+    const twoCol = brand === model && year === renewal;
+    const stacked = model > brand && renewal > year;
+    const tiles = await p.locator("[data-quote-form] fieldset").first().locator("label").evaluateAll((ls) => ls.map((l) => l.getBoundingClientRect()));
+    const tileWidths = tiles.map((t) => Math.round(t.width));
+    const tileHeights = tiles.map((t) => Math.round(t.height));
+    ok(Math.round(formBox.width) === expected && scroll <= w, `${w}px ${path}: form ${Math.round(formBox.width)}px (expected ${expected}), no horizontal scroll`);
+    ok(paired ? twoCol : stacked, `${w}px ${path}: ${paired ? "paired fields share a row and line up" : "fields stack one per row"}`);
+    ok(yearBox.width >= 200, `${w}px ${path}: year dropdown ${Math.round(yearBox.width)}px wide, room for "2569 (2026)"`);
+    ok(Math.max(...tileWidths) - Math.min(...tileWidths) <= 1 && Math.max(...tileHeights) === Math.min(...tileHeights),
+      `${w}px ${path}: plan tiles equal width (${tileWidths[0]}px), every label on one line`);
+  }
+  await ctx.close();
+}
+
 console.log("\n# Staff see the enquiries; the public can't");
 {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
@@ -176,7 +247,7 @@ for (const [label, route] of [
   const form = p.locator("main form").first();
   await form.getByLabel("ยี่ห้อรถ").fill("Mazda");
   await form.getByLabel("รุ่นรถ").fill("CX-3");
-  await form.getByLabel("ปีรถ (ค.ศ.)").selectOption("2019");
+  await form.getByLabel("ปีรถ (พ.ศ.)").selectOption("2019");
   await form.getByLabel("ชื่อที่ให้เราเรียก").fill("ทดสอบ ล้มเหลว");
   await form.getByLabel("เบอร์โทรศัพท์").fill("0810000999");
   await sleep(3200);

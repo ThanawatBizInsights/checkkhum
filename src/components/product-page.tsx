@@ -1,6 +1,7 @@
 import { coverageDisclaimer, type Product } from "@/content/products";
 import { CheckMark, Dash, productIcons } from "./icons";
 import { QuoteForm } from "./quote-form";
+import { quoteSplit } from "./quote-layout";
 import { ContactBand, ProductOverview } from "./sections";
 
 /** Tier comparison table (car insurance); also used on the homepage. */
@@ -49,7 +50,7 @@ export function ProductPage({ product }: { product: Product }) {
   return (
     <>
       <section className="bg-gradient-to-b from-paper to-sky pb-14 pt-8 md:pb-[72px] md:pt-14">
-        <div className="wrap grid gap-10 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-x-14 lg:gap-y-12">
+        <div className={`wrap ${quoteSplit} gap-y-10 lg:gap-y-12`}>
           <div className="lg:col-start-1">
             <Icon className="size-16 md:size-20" />
             <h1 className="mt-4 text-[clamp(2rem,1.4rem+2.6vw,3rem)] leading-[1.3]">{product.headline}</h1>
@@ -64,7 +65,7 @@ export function ProductPage({ product }: { product: Product }) {
 
           <div className="min-w-0 lg:col-start-1">
             <h2 className="text-[1.5rem]">คุ้มครองอะไรบ้าง</h2>
-            <dl className="mt-4 grid gap-5 sm:grid-cols-3 sm:gap-6">
+            <dl className="mt-4 grid gap-5 sm:grid-cols-3 sm:gap-6 lg:grid-cols-1 xl:grid-cols-3">
               {product.covers.map((c) => (
                 <div key={c.title} className="border-t-2 border-teal pt-3">
                   <dt className="font-display text-lg font-semibold text-navy">{c.title}</dt>

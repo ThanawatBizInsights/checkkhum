@@ -1,4 +1,4 @@
-import { evChargerLabels, renewalTimingLabels, repairLabels, usageLabels, vehicleTypeLabels } from "@/content/quote-options";
+import { evChargerLabels, modelYearLabel, renewalTimingLabels, repairLabels, usageLabels, vehicleTypeLabels } from "@/content/quote-options";
 
 /**
  * Enquiry submissions (browser side).
@@ -155,7 +155,7 @@ export function summarizeEnquiry(e: EnquiryInput): string {
     if (e.vehicleType) lines.push(`ประเภทรถ: ${vehicleTypeLabels[e.vehicleType] ?? e.vehicleType}`);
     const car = [e.carBrand, e.carModel].filter(Boolean).join(" ");
     if (car) lines.push(`รถ: ${car}`);
-    if (e.carYear) lines.push(`ปีรถ: ${e.carYear}`);
+    if (e.carYear) lines.push(`ปีรถ: ${modelYearLabel(e.carYear)}`);
     if (e.usage) lines.push(`การใช้รถ: ${usageLabels[e.usage] ?? e.usage}`);
     if (e.repair) lines.push(`การซ่อม: ${repairLabels[e.repair] ?? e.repair}`);
     if (e.evCharger) lines.push(`เครื่องชาร์จที่บ้าน: ${evChargerLabels[e.evCharger] ?? e.evCharger}`);

@@ -258,7 +258,7 @@ npx supabase db reset
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 160 customer portal + registration checks
 npx supabase db reset   # app built and started with the test LINE settings in scripts/verify-line.mjs
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:line     # 62 LINE Login checks
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey  # 68 quote journey checks (UNCONFIGURED_URL=… adds the no-settings case)
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey  # 132 quote journey checks (UNCONFIGURED_URL=… adds the no-settings case)
 ```
 
 Full launch audit (mobile layouts at 360/390px, Thai fonts and text size, every internal

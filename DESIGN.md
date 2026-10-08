@@ -232,8 +232,8 @@ in one screen. Decisions:
   licences, partners, prices, discounts, reviews, counts or response times until confirmed.
   The licence line appears only when `legal.companyName` and `legal.brokerLicenseNo` are set.
 - **Quote form.** Plan chips first, then only that product's questions: brand (free text
-  with a suggestion list, not a verified database), model (free text), year (select, ค.ศ.
-  with พ.ศ. alongside), renewal timing (select), optional repair (ชั้น 1), home charger
+  with a suggestion list, not a verified database), model (free text), year (select labelled
+  "ปีรถ (พ.ศ.)", options "2569 (2026)"; see below), renewal timing (select), optional repair (ชั้น 1), home charger
   (EV), usage; พ.ร.บ. asks vehicle type with brand/model optional; travel asks destination,
   start date, days, travellers. Chip groups now carry errors with `aria-describedby`.
 - **Confirmation.** Only after the server returns a `CK-` reference: reference in a mint
@@ -246,6 +246,35 @@ Critique from screenshots (1366 and 390): the headline split "ประกัน
 fixed with a no-wrap span; the hero paragraph repeated the form's intro on phones, so it is
 hidden below `sm`. No horizontal scroll at 390px on any journey screen (checked by
 `verify:journey`).
+
+## Quotation form: width and tidiness (stage 2)
+
+Problem: on desktop the form sat in a fixed 440px column (480px on `/quote`) inside a
+1120px `.wrap`, leaving 178px year selects, a renewal label that wrapped and pushed its
+select out of line, and plan chips spilling onto a second ragged row.
+
+- **Width.** `.wrap` is 1240px site-wide (header, sections and footer stay aligned). The
+  form column comes from one shared class, `quoteSplit` in `src/components/quote-layout.ts`,
+  used by the homepage hero, product pages and `/quote`: 600px from 1280px, 520px from
+  1024px, full width below (704px on a 768px tablet, 358px on a 390px phone). The content
+  column keeps about 520px beside it at 1366px; the product pages stack their three cover
+  notes between 1024 and 1279px, where that column is narrower.
+- **Rows by container, not viewport.** The `<form>` is an `@container`; paired fields (brand
+  and model, year and renewal, name and phone, destination and start date) share a row only
+  at `@lg` (form content ≥ 32rem). So they pair at 768px and ≥ 1280px, and stack on phones
+  and at 1024px, where they would otherwise squeeze labels onto two lines.
+- **Plan selector as tiles.** Six equal-width tiles (2 per row, 3 from `@sm`) instead of
+  wrapping pills; labels never wrap. This is the form's one distinctive element.
+- **Optional fields** carry a quiet "ไม่บังคับ" tag after the label instead of "(ไม่บังคับ)"
+  inside it, keeping labels short and on one line. Renewal labels shortened to
+  "ประกันเดิมหมดเมื่อไร" / "พ.ร.บ. เดิมหมดเมื่อไร".
+- **Year.** Label "ปีรถ (พ.ศ.)", placeholder "เลือกปีรถ", options "2569 (2026)" (พ.ศ. = ค.ศ. +
+  543), same 31-year range. Values stay Gregorian, so the API, database and CRM are unchanged;
+  the confirmation summary shows "ปีรถ: 2569 (2026)".
+- **Spacing and button.** Padding 20/28/32px by width, 24px between groups, 50px fields,
+  and a 56px-tall submit button (`Button size="lg"`).
+
+Screenshots before and after (390, 768, 1024, 1366): `docs/screenshots/quote-form/`.
 
 ## Open items for the client
 
