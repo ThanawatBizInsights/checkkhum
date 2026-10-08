@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 
 type Variant = "primary" | "quiet" | "outline" | "onDark";
-type Size = "md" | "sm";
+type Size = "lg" | "md" | "sm";
 
 const base =
   "inline-flex items-center justify-center rounded-full font-display font-semibold leading-tight no-underline transition-colors cursor-pointer disabled:cursor-not-allowed";
@@ -15,6 +15,7 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
+  lg: "min-h-14 px-8 text-xl",
   md: "min-h-[52px] px-7 text-lg",
   sm: "min-h-11 px-5 text-base",
 };

@@ -6,6 +6,7 @@ import { findPlan, plans, type PlanId } from "@/content/products";
 import {
   carBrandSuggestions,
   evChargerOptions,
+  modelYearLabel,
   modelYears,
   renewalTimingOptions,
   repairOptions,
@@ -94,6 +95,11 @@ export function QuoteFormClient({
   const submission = useEnquirySubmission();
   const brandListId = useId();
   const years = useMemo(() => modelYears(), []);
+  // A year outside the generated range (e.g. kept from an older page) still shows as selected.
+  const yearOptions = useMemo(
+    () => (fields.carYear && !years.some((y) => y.value === fields.carYear) ? [...years, { value: fields.carYear, label: modelYearLabel(fields.carYear) }] : years),
+    [years, fields.carYear],
+  );
 
   const plan = findPlan(planId) ?? plans[0];
   const isTravel = planId === "travel";
@@ -152,9 +158,9 @@ export function QuoteFormClient({
       id="quote"
       data-quote-form
       aria-labelledby={id("title")}
-      className="rounded-[var(--radius-panel)] border-2 border-navy bg-paper px-4 py-6 shadow-[0_18px_40px_-24px_rgba(10,34,89,.45)] sm:px-5 md:p-8"
+      className="rounded-[var(--radius-panel)] border-2 border-navy bg-paper px-5 py-6 shadow-[0_18px_40px_-24px_rgba(10,34,89,.45)] sm:px-7 sm:py-7 lg:px-8 lg:py-8"
     >
-      <TitleTag id={id("title")} className="text-[1.75rem]">
+      <TitleTag id={id("title")} className="text-[1.5rem] sm:text-[1.75rem]">
         {title}
       </TitleTag>
 
@@ -179,8 +185,10 @@ export function QuoteFormClient({
         </div>
       ) : (
         <>
-          <p className="mb-5 mt-1 text-base text-ink-soft">ไม่ต้องสมัครสมาชิก กรอกข้อมูลสั้น ๆ แล้วทีมงานจะติดต่อกลับพร้อมใบเสนอราคา</p>
-          <form ref={formRef} onSubmit={onSubmit} noValidate className="relative grid gap-5">
+          <p className="mb-6 mt-1 max-w-[36em] text-base text-ink-soft">
+            ไม่ต้องสมัครสมาชิก กรอกข้อมูลสั้น ๆ ทีมงานจะติดต่อกลับ<span className="whitespace-nowrap">พร้อมใบเสนอราคา</span>
+          </p>
+          <form ref={formRef} onSubmit={onSubmit} noValidate className="@container relative grid gap-6">
             <ChipGroup
               legend="ประกันที่ต้องการ"
               name={id("plan")}
@@ -190,13 +198,16 @@ export function QuoteFormClient({
                 setErrors({});
               }}
               options={plans.map((p) => ({ value: p.id, label: p.label }))}
+              layout="tiles"
             />
 
             {isTravel ? (
               <>
-                <TextField id={id("destination")} label="ประเทศปลายทาง" placeholder="เช่น ญี่ปุ่น" autoComplete="off" maxLength={100} value={fields.destination} onChange={set("destination")} error={errors.destination} />
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <TextField id={id("tripStart")} label="วันเริ่มเดินทาง (ไม่บังคับ)" type="date" value={fields.tripStart} onChange={set("tripStart")} error={errors.tripStart} />
+                <div className="grid gap-5 @lg:grid-cols-2 @lg:gap-x-4">
+                  <TextField id={id("destination")} label="ประเทศปลายทาง" placeholder="เช่น ญี่ปุ่น" autoComplete="off" maxLength={100} value={fields.destination} onChange={set("destination")} error={errors.destination} />
+                  <TextField id={id("tripStart")} label="วันเริ่มเดินทาง" optional type="date" value={fields.tripStart} onChange={set("tripStart")} error={errors.tripStart} />
+                </div>
+                <div className="grid grid-cols-2 gap-x-4">
                   <TextField id={id("tripDays")} label="จำนวนวัน" inputMode="numeric" placeholder="เช่น 7" maxLength={3} value={fields.tripDays} onChange={set("tripDays")} error={errors.tripDays} />
                   <TextField id={id("travellers")} label="จำนวนผู้เดินทาง" inputMode="numeric" maxLength={2} value={fields.travellers} onChange={set("travellers")} error={errors.travellers} />
                 </div>
@@ -206,11 +217,12 @@ export function QuoteFormClient({
                 {isCompulsory && (
                   <ChipGroup legend="ประเภทรถ" name={id("vehicleType")} value={fields.vehicleType} onChange={choose("vehicleType")} options={[...vehicleTypeOptions]} error={errors.vehicleType} />
                 )}
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-5 @lg:grid-cols-2 @lg:gap-x-4">
                   <div>
                     <TextField
                       id={id("carBrand")}
-                      label={isCompulsory ? "ยี่ห้อรถ (ไม่บังคับ)" : "ยี่ห้อรถ"}
+                      label="ยี่ห้อรถ"
+                      optional={isCompulsory}
                       placeholder="เช่น Toyota"
                       list={brandListId}
                       autoComplete="off"
@@ -227,7 +239,8 @@ export function QuoteFormClient({
                   </div>
                   <TextField
                     id={id("carModel")}
-                    label={isCompulsory ? "รุ่นรถ (ไม่บังคับ)" : "รุ่นรถ"}
+                    label="รุ่นรถ"
+                    optional={isCompulsory}
                     placeholder="เช่น Yaris Ativ"
                     autoComplete="off"
                     maxLength={60}
@@ -236,20 +249,22 @@ export function QuoteFormClient({
                     error={errors.carModel}
                   />
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-5 @lg:grid-cols-2 @lg:gap-x-4">
                   <SelectField
                     id={id("carYear")}
-                    label={isCompulsory ? "ปีรถ ค.ศ. (ไม่บังคับ)" : "ปีรถ (ค.ศ.)"}
-                    placeholder="เลือกปี"
-                    options={years}
+                    label="ปีรถ (พ.ศ.)"
+                    optional={isCompulsory}
+                    placeholder="เลือกปีรถ"
+                    options={yearOptions}
                     value={fields.carYear}
                     onChange={set("carYear")}
                     error={errors.carYear}
                   />
                   <SelectField
                     id={id("renewalTiming")}
-                    label={isCompulsory ? "พ.ร.บ. เดิมหมดอายุเมื่อไร" : "ประกันเดิมหมดอายุเมื่อไร"}
-                    placeholder="เลือก (ไม่บังคับ)"
+                    label={isCompulsory ? "พ.ร.บ. เดิมหมดเมื่อไร" : "ประกันเดิมหมดเมื่อไร"}
+                    optional
+                    placeholder="เลือกช่วงเวลา"
                     options={[...renewalTimingOptions]}
                     value={fields.renewalTiming}
                     onChange={set("renewalTiming")}
@@ -257,18 +272,18 @@ export function QuoteFormClient({
                   />
                 </div>
                 {planId === "ev" && (
-                  <ChipGroup legend="มีเครื่องชาร์จที่บ้านไหม (ไม่บังคับ)" name={id("evCharger")} value={fields.evCharger} onChange={choose("evCharger")} options={[...evChargerOptions]} error={errors.evCharger} />
+                  <ChipGroup legend="มีเครื่องชาร์จที่บ้านไหม" optional name={id("evCharger")} value={fields.evCharger} onChange={choose("evCharger")} options={[...evChargerOptions]} error={errors.evCharger} />
                 )}
                 {planId === "car-1" && (
-                  <ChipGroup legend="อยากซ่อมแบบไหน (ไม่บังคับ)" name={id("repair")} value={fields.repair} onChange={choose("repair")} options={[...repairOptions]} error={errors.repair} />
+                  <ChipGroup legend="อยากซ่อมแบบไหน" optional name={id("repair")} value={fields.repair} onChange={choose("repair")} options={[...repairOptions]} error={errors.repair} />
                 )}
                 {!isCompulsory && (
-                  <ChipGroup legend="ลักษณะการใช้รถ (ไม่บังคับ)" name={id("usage")} value={fields.usage} onChange={choose("usage")} options={[...usageOptions]} error={errors.usage} />
+                  <ChipGroup legend="ลักษณะการใช้รถ" optional name={id("usage")} value={fields.usage} onChange={choose("usage")} options={[...usageOptions]} error={errors.usage} />
                 )}
               </>
             )}
 
-            <div className="grid gap-4 border-t border-line pt-5 sm:grid-cols-2">
+            <div className="grid gap-5 border-t border-line pt-6 @lg:grid-cols-2 @lg:gap-x-4">
               <TextField id={id("name")} label="ชื่อที่ให้เราเรียก" autoComplete="given-name" maxLength={120} required value={fields.name} onChange={set("name")} error={errors.name} />
               <TextField
                 id={id("phone")}
@@ -298,7 +313,8 @@ export function QuoteFormClient({
             {showNotes && (
               <TextAreaField
                 id={id("message")}
-                label="รายละเอียดเพิ่มเติม (ไม่บังคับ)"
+                label="รายละเอียดเพิ่มเติม"
+                optional
                 placeholder="เช่น ทุนประกันที่ต้องการ หรือคำถามถึงทีมงาน"
                 maxLength={1000}
                 value={fields.message}
@@ -317,12 +333,12 @@ export function QuoteFormClient({
 
             <FormError message={submission.formError} />
 
-            <Button type="submit" block disabled={submission.pending} aria-busy={submission.pending || undefined}>
+            <Button type="submit" size="lg" block disabled={submission.pending} aria-busy={submission.pending || undefined}>
               {submission.pending ? "กำลังส่งคำขอ" : "ขอใบเสนอราคา"}
             </Button>
             <p className="text-[0.9375rem] leading-relaxed text-ink-soft">
               เราใช้ข้อมูลนี้เพื่อจัดทำใบเสนอราคาและติดต่อกลับเรื่องคำขอนี้ อ่าน
-              <Link href="/privacy" className="text-teal-ink underline underline-offset-4">
+              <Link href="/privacy" className="whitespace-nowrap text-teal-ink underline underline-offset-4">
                 ประกาศความเป็นส่วนตัว
               </Link>
             </p>

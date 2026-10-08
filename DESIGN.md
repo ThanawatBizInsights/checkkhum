@@ -232,8 +232,8 @@ in one screen. Decisions:
   licences, partners, prices, discounts, reviews, counts or response times until confirmed.
   The licence line appears only when `legal.companyName` and `legal.brokerLicenseNo` are set.
 - **Quote form.** Plan chips first, then only that product's questions: brand (free text
-  with a suggestion list, not a verified database), model (free text), year (select, ค.ศ.
-  with พ.ศ. alongside), renewal timing (select), optional repair (ชั้น 1), home charger
+  with a suggestion list, not a verified database), model (free text), year (select labelled
+  "ปีรถ (พ.ศ.)", options "2569 (2026)"; see below), renewal timing (select), optional repair (ชั้น 1), home charger
   (EV), usage; พ.ร.บ. asks vehicle type with brand/model optional; travel asks destination,
   start date, days, travellers. Chip groups now carry errors with `aria-describedby`.
 - **Confirmation.** Only after the server returns a `CK-` reference: reference in a mint
@@ -246,6 +246,60 @@ Critique from screenshots (1366 and 390): the headline split "ประกัน
 fixed with a no-wrap span; the hero paragraph repeated the form's intro on phones, so it is
 hidden below `sm`. No horizontal scroll at 390px on any journey screen (checked by
 `verify:journey`).
+
+## Quotation form: width and tidiness (stage 2)
+
+Problem: on desktop the form sat in a fixed 440px column (480px on `/quote`) inside a
+1120px `.wrap`, leaving 178px year selects, a renewal label that wrapped and pushed its
+select out of line, and plan chips spilling onto a second ragged row.
+
+- **Width.** `.wrap` is 1240px site-wide (header, sections and footer stay aligned). The
+  form column comes from one shared class, `quoteSplit` in `src/components/quote-layout.ts`,
+  used by the homepage hero, product pages and `/quote`: 600px from 1280px, 520px from
+  1024px, full width below (704px on a 768px tablet, 358px on a 390px phone). The content
+  column keeps about 520px beside it at 1366px; the product pages stack their three cover
+  notes between 1024 and 1279px, where that column is narrower.
+- **Rows by container, not viewport.** The `<form>` is an `@container`; paired fields (brand
+  and model, year and renewal, name and phone, destination and start date) share a row only
+  at `@lg` (form content ≥ 32rem). So they pair at 768px and ≥ 1280px, and stack on phones
+  and at 1024px, where they would otherwise squeeze labels onto two lines.
+- **Plan selector as tiles.** Six equal-width tiles (2 per row, 3 from `@sm`) instead of
+  wrapping pills; labels never wrap. This is the form's one distinctive element.
+- **Optional fields** carry a quiet "ไม่บังคับ" tag after the label instead of "(ไม่บังคับ)"
+  inside it, keeping labels short and on one line. Renewal labels shortened to
+  "ประกันเดิมหมดเมื่อไร" / "พ.ร.บ. เดิมหมดเมื่อไร".
+- **Year.** Label "ปีรถ (พ.ศ.)", placeholder "เลือกปีรถ", options "2569 (2026)" (พ.ศ. = ค.ศ. +
+  543), same 31-year range. Values stay Gregorian, so the API, database and CRM are unchanged;
+  the confirmation summary shows "ปีรถ: 2569 (2026)".
+- **Spacing and button.** Padding 20/28/32px by width, 24px between groups, 50px fields,
+  and a 56px-tall submit button (`Button size="lg"`).
+
+Screenshots before and after (390, 768, 1024, 1366): `docs/screenshots/quote-form/`.
+
+## Product photography (stage 3)
+
+Three supplied photos, saved as WebP in `public/images/` (`car-insurance-silver-sedan`,
+`ev-insurance-white-crossover-charging`, `travel-insurance-couple-airport`; 77–152 KB,
+1672×941) and listed with Thai alt text and a focal point in `src/content/product-photos.ts`.
+They are statically imported, so next/image knows their size, serves resized AVIF/WebP and
+shows a blur placeholder. พ.ร.บ. has no photo and keeps its icon; nothing is substituted.
+
+- **One treatment** (`ProductPhoto`): 16:10 crop, panel radius, `object-cover` with each
+  photo's own `object-position` (sedan right of centre, EV car plus wall charger, travellers
+  on the right). No text sits on the photos, so busy areas never compete with type.
+- **Product pages** (car, EV, travel): heading, intro and photo in the content column beside
+  the 600px form on desktop; the photo replaces the product icon. Below 1024px the order is
+  photo → heading → "ขอใบเสนอราคา" button (jumps to the form) → form; tablets crop to 2:1 so
+  the form starts in the first screen. The hero photo is preloaded (Next 16 `preload`).
+- **Homepage**: product cards get the same 16:10 strip (photos for car, EV and travel; a
+  light-blue icon panel for พ.ร.บ.), lazy-loaded. The hero's old poster crop (`hero-car.webp`,
+  667px) is replaced by the sedan photo, desktop only and not preloaded because phones never
+  show it. The sedan therefore appears twice on desktop (hero and car card); drop it from the
+  card if that feels repetitive.
+- Form titles drop to 1.5rem below 640px so long names such as "ขอใบเสนอราคาประกันเดินทาง"
+  stay on one line.
+
+Screenshots before and after (390, 768, 1366): `docs/screenshots/product-photos/`.
 
 ## Open items for the client
 

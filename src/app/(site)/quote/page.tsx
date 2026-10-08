@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ContactChannels } from "@/components/contact-channels";
 import { QuoteForm } from "@/components/quote-form";
+import { quoteSplit } from "@/components/quote-layout";
 import { processSteps as steps } from "@/content/journey";
 import { findPlan } from "@/content/products";
 
@@ -17,7 +18,7 @@ export default async function QuotePage({ searchParams }: { searchParams: Promis
 
   return (
     <section className="bg-gradient-to-b from-paper to-sky pb-16 pt-8 md:pt-14">
-      <div className="wrap grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:gap-14">
+      <div className={`wrap ${quoteSplit} lg:gap-y-10`}>
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <QuoteForm key={initialPlan} initialPlan={initialPlan} title="ขอใบเสนอราคา" titleAs="h1" showNotes />
         </div>

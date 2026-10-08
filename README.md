@@ -258,7 +258,7 @@ npx supabase db reset
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 160 customer portal + registration checks
 npx supabase db reset   # app built and started with the test LINE settings in scripts/verify-line.mjs
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:line     # 62 LINE Login checks
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey  # 68 quote journey checks (UNCONFIGURED_URL=… adds the no-settings case)
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey  # 201 quote journey checks (UNCONFIGURED_URL=… adds the no-settings case)
 ```
 
 Full launch audit (mobile layouts at 360/390px, Thai fonts and text size, every internal
@@ -436,8 +436,8 @@ a real device.
   email confirmation and rate limits (see "Customer portal").
 - For LINE: LINE Login channel, LIFF app, callback URL, Rich Menu link and the two
   Vercel variables (see "LINE Login and LIFF").
-- Replace `public/images/checkkhum-logo.png` and `hero-car.webp` with the original
-  high-resolution artwork; the current files are cropped from the 667px-wide approved poster.
+- Replace `public/images/checkkhum-logo.png` with the original
+  high-resolution artwork; the current file is cropped from the 667px-wide approved poster.
 
 ## Project notes
 

@@ -1,6 +1,10 @@
 import { coverageDisclaimer, type Product } from "@/content/products";
 import { CheckMark, Dash, productIcons } from "./icons";
+import { productPhotos } from "@/content/product-photos";
+import { ButtonLink } from "./button";
+import { ProductPhoto } from "./product-photo";
 import { QuoteForm } from "./quote-form";
+import { quoteSplit } from "./quote-layout";
 import { ContactBand, ProductOverview } from "./sections";
 
 /** Tier comparison table (car insurance); also used on the homepage. */
@@ -46,17 +50,32 @@ export function TierTable({ product, caption = "เทียบความค�
 /** Shared layout for the four product pages. Content lives in src/content/products.ts. */
 export function ProductPage({ product }: { product: Product }) {
   const Icon = productIcons[product.slug];
+  const photo = productPhotos[product.slug];
   return (
     <>
-      <section className="bg-gradient-to-b from-paper to-sky pb-14 pt-8 md:pb-[72px] md:pt-14">
-        <div className="wrap grid gap-10 lg:grid-cols-[minmax(0,1fr)_440px] lg:gap-x-14 lg:gap-y-12">
+      <section className="bg-gradient-to-b from-paper to-sky pb-14 pt-6 md:pb-[72px] md:pt-12">
+        <div className={`wrap ${quoteSplit} gap-y-8 lg:gap-y-10`}>
+          {/* Hero: heading and intro; on phones and tablets the photo comes first (order) and a
+              button jumps to the form, which follows. On desktop the form sits beside them. */}
           <div className="lg:col-start-1">
-            <Icon className="size-16 md:size-20" />
-            <h1 className="mt-4 text-[clamp(2rem,1.4rem+2.6vw,3rem)] leading-[1.3]">{product.headline}</h1>
+            {!photo && <Icon className="mb-4 size-16 md:size-20" />}
+            <h1 className="text-[clamp(2rem,1.4rem+2.6vw,3rem)] leading-[1.3]">{product.headline}</h1>
             <p className="mt-3 max-w-[34em] text-lg text-ink-soft">{product.intro}</p>
+            <ButtonLink href="#quote" className="mt-5 lg:hidden">
+              ขอใบเสนอราคา
+            </ButtonLink>
           </div>
 
-          <div className="lg:col-start-2 lg:row-span-3 lg:row-start-1">
+          {photo && (
+            <ProductPhoto
+              photo={photo}
+              preload
+              sizes="(min-width: 1280px) 560px, (min-width: 1024px) 420px, 100vw"
+              className="max-lg:order-first sm:aspect-[2/1] lg:col-start-1 lg:aspect-[16/10]"
+            />
+          )}
+
+          <div className={`lg:col-start-2 lg:row-start-1 ${photo ? "lg:row-span-4" : "lg:row-span-3"}`}>
             <div className="lg:sticky lg:top-6">
               <QuoteForm key={product.quotePlan} initialPlan={product.quotePlan} title={`ขอใบเสนอราคา${product.name}`} />
             </div>
@@ -64,7 +83,7 @@ export function ProductPage({ product }: { product: Product }) {
 
           <div className="min-w-0 lg:col-start-1">
             <h2 className="text-[1.5rem]">คุ้มครองอะไรบ้าง</h2>
-            <dl className="mt-4 grid gap-5 sm:grid-cols-3 sm:gap-6">
+            <dl className="mt-4 grid gap-5 sm:grid-cols-3 sm:gap-6 lg:grid-cols-1 xl:grid-cols-3">
               {product.covers.map((c) => (
                 <div key={c.title} className="border-t-2 border-teal pt-3">
                   <dt className="font-display text-lg font-semibold text-navy">{c.title}</dt>

@@ -596,7 +596,7 @@ let quoteRef;
   const form = p.locator("main form").first();
   await form.getByLabel("ยี่ห้อรถ").fill("Mazda");
   await form.getByLabel("รุ่นรถ").fill("2");
-  await form.getByLabel("ปีรถ (ค.ศ.)").selectOption("2021");
+  await form.getByLabel("ปีรถ (พ.ศ.)").selectOption("2021");
   await form.getByLabel("ชื่อที่ให้เราเรียก").fill("ทดสอบ สมัครเอ");
   await form.getByLabel("เบอร์โทรศัพท์").fill("0899990111");
   await sleep(3000); // the form's minimum fill time

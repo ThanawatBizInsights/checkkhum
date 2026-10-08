@@ -1,11 +1,13 @@
-import Image from "next/image";
 import Link from "next/link";
 import { buttonClasses } from "@/components/button";
 import { CheckMark, productIcons } from "@/components/icons";
+import { ProductPhoto } from "@/components/product-photo";
 import { TierTable } from "@/components/product-page";
 import { QuoteForm } from "@/components/quote-form";
+import { quoteSplit } from "@/components/quote-layout";
 import { ContactBand } from "@/components/sections";
 import { faqs, processSteps, siteFacts } from "@/content/journey";
+import { productPhotos } from "@/content/product-photos";
 import { coverageDisclaimer, productOrder, products } from "@/content/products";
 import { companyIdentity } from "@/lib/contact";
 
@@ -20,7 +22,7 @@ export default function HomePage() {
   return (
     <>
       <section className="bg-gradient-to-b from-paper to-sky pb-12 pt-7 lg:pb-[72px] lg:pt-14">
-        <div className="wrap grid gap-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:grid-rows-[auto_1fr] lg:gap-x-14 lg:gap-y-8">
+        <div className={`wrap ${quoteSplit} lg:grid-rows-[auto_1fr] lg:gap-y-8`}>
           <div>
             <h1 className="text-[clamp(1.875rem,1.3rem+2.6vw,3rem)] leading-[1.3]">
               ขอใบเสนอราคา<span className="whitespace-nowrap">ประกันรถยนต์</span>
@@ -49,18 +51,13 @@ export default function HomePage() {
                 ดำเนินการโดย {companyIdentity.name} ใบอนุญาตนายหน้าประกันวินาศภัยเลขที่ {companyIdentity.licenceNo}
               </p>
             )}
-            {/* Decorative on desktop; on phones the form comes first instead. */}
-            <figure className="m-0 mt-8 hidden lg:block">
-              <Image
-                src="/images/hero-car.webp"
-                width={667}
-                height={390}
-                alt="รถยนต์เก๋งสีเงินบนถนน มีโล่สีน้ำเงินเขียวด้านหลัง"
-                priority
-                sizes="560px"
-                className="h-auto w-full rounded-[var(--radius-panel)]"
-              />
-            </figure>
+            {/* Desktop only, beside the long form; on phones the form comes first instead. Not
+                preloaded: phones never show it, and on desktop it is in view so it loads at once. */}
+            <ProductPhoto
+              photo={productPhotos.car!}
+              sizes="(min-width: 1280px) 560px, 420px"
+              className="mt-8 hidden lg:block"
+            />
           </div>
         </div>
       </section>
@@ -74,18 +71,28 @@ export default function HomePage() {
             {productOrder.map((slug) => {
               const p = products[slug];
               const Icon = productIcons[slug];
+              const photo = productPhotos[slug];
               return (
-                <li key={slug} className="flex flex-col rounded-[var(--radius-panel)] border border-line bg-paper p-5">
-                  <Icon className="size-14" />
-                  <h3 className="mt-3">
-                    <Link href={p.href} className="hover:underline hover:underline-offset-8">
-                      {p.name}
+                <li key={slug} className="flex flex-col overflow-hidden rounded-[var(--radius-panel)] border border-line bg-paper">
+                  {/* Same 16:10 media strip on every card; พ.ร.บ. has no photo, so it shows its icon. */}
+                  {photo ? (
+                    <ProductPhoto photo={photo} rounded="" sizes="(min-width: 1024px) 300px, (min-width: 640px) 50vw, 100vw" />
+                  ) : (
+                    <div className="grid aspect-[16/10] place-items-center bg-sky">
+                      <Icon className="size-20" />
+                    </div>
+                  )}
+                  <div className="flex flex-1 flex-col p-5">
+                    <h3>
+                      <Link href={p.href} className="hover:underline hover:underline-offset-8">
+                        {p.name}
+                      </Link>
+                    </h3>
+                    <p className="mt-1 flex-1 text-ink-soft">{p.summary}</p>
+                    <Link href={`/quote?plan=${p.quotePlan}`} className={`${buttonClasses("quiet", "md", true)} mt-4`}>
+                      ขอใบเสนอราคา<span className="sr-only"> {p.name}</span>
                     </Link>
-                  </h3>
-                  <p className="mt-1 flex-1 text-ink-soft">{p.summary}</p>
-                  <Link href={`/quote?plan=${p.quotePlan}`} className={`${buttonClasses("quiet", "md", true)} mt-4`}>
-                    ขอใบเสนอราคา<span className="sr-only"> {p.name}</span>
-                  </Link>
+                  </div>
                 </li>
               );
             })}

@@ -179,7 +179,7 @@ let quoteRef;
   const form = p.locator("main form").first();
   await form.getByLabel("ยี่ห้อรถ").fill("Toyota");
   await form.getByLabel("รุ่นรถ").fill("Vios");
-  await form.getByLabel("ปีรถ (ค.ศ.)").selectOption("2020");
+  await form.getByLabel("ปีรถ (พ.ศ.)").selectOption("2020");
   await form.getByLabel("ชื่อที่ให้เราเรียก").fill("ไลน์ หนึ่ง");
   await form.getByLabel("เบอร์โทรศัพท์").fill("0899990333");
   await new Promise((r) => setTimeout(r, 3000));
