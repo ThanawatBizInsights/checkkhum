@@ -212,6 +212,45 @@ for (const [w, expected, paired] of [[390, 358, false], [768, 704, true], [1024,
   await ctx.close();
 }
 
+console.log("\n# Product photos: heroes, homepage cards, loading and cropping");
+for (const [w, h] of [[390, 844], [768, 1024], [1366, 900]]) {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+  const p = await ctx.newPage();
+  for (const [path, file] of [["/car-insurance", "car-insurance-silver-sedan"], ["/ev-insurance", "ev-insurance-white-crossover-charging"], ["/travel-insurance", "travel-insurance-couple-airport"]]) {
+    const res = await p.goto(`${B}${path}`, { waitUntil: "networkidle" });
+    const html = await res.text();
+    const hero = p.locator(`main img[src*="${file}"]`).first();
+    const info = await hero.evaluate((img) => {
+      const box = img.parentElement.getBoundingClientRect();
+      return { alt: img.alt, loaded: img.complete && img.naturalWidth > 0, fit: getComputedStyle(img).objectFit, ratio: box.width / box.height, top: box.top, w: box.width };
+    });
+    const form = await p.locator("[data-quote-form]").first().boundingBox();
+    const scroll = await p.evaluate(() => document.documentElement.scrollWidth);
+    ok(/[\u0E00-\u0E7F]/.test(info.alt) && info.loaded && info.fit === "cover", `${w}px ${path}: hero photo loaded, Thai alt text, cover fit (${info.alt.slice(0, 24)}…)`);
+    ok(html.includes(`rel="preload"`) && html.includes(file), `${w}px ${path}: hero photo is preloaded`);
+    ok(Math.abs(info.ratio - (w >= 1024 ? 1.6 : w >= 640 ? 2 : 1.6)) < 0.02, `${w}px ${path}: crop ratio ${info.ratio.toFixed(2)} (reserved box, no layout shift)`);
+    ok(w >= 1024 ? form.x > info.w && form.width >= 600 : info.top < form.y, `${w}px ${path}: ${w >= 1024 ? "photo beside a 600px form" : "photo, heading and button come before the form"}`);
+    ok(scroll <= w, `${w}px ${path}: no horizontal scroll`);
+    if (w < 1024) {
+      const jump = p.locator('main a[href="#quote"]').first();
+      ok(await jump.isVisible(), `${w}px ${path}: "ขอใบเสนอราคา" button jumps to the form`);
+    }
+  }
+  await p.goto(`${B}/compulsory-insurance`, { waitUntil: "networkidle" });
+  ok((await p.locator('main img[src*="insurance-"]').count()) === 0, `${w}px พ.ร.บ.: no substitute photo (icon kept)`);
+
+  await p.goto(`${B}/`, { waitUntil: "networkidle" });
+  const cards = p.locator("#products-title").locator("xpath=..").locator("li");
+  const cardImgs = await cards.locator("img").evaluateAll((imgs) => imgs.map((i) => ({ src: i.getAttribute("src") ?? "", loading: i.getAttribute("loading"), alt: i.alt })));
+  ok(cardImgs.length === 3 && cardImgs.every((i) => i.loading === "lazy" && i.alt.length > 10), `${w}px homepage: 3 product-card photos, lazy-loaded with alt text`);
+  ok((await cards.nth(2).locator("svg").count()) === 1, `${w}px homepage: พ.ร.บ. card shows its icon panel`);
+  const heroPhotoVisible = await p.locator('main section').first().locator(`img[src*="car-insurance-silver-sedan"]`).isVisible();
+  ok(heroPhotoVisible === (w >= 1024), `${w}px homepage: hero photo ${w >= 1024 ? "shown beside the form" : "hidden so the form comes first"}`);
+  ok((await p.locator('img[src*="hero-car"]').count()) === 0, `${w}px homepage: old poster image removed`);
+  ok((await p.evaluate(() => document.documentElement.scrollWidth)) <= w, `${w}px homepage: no horizontal scroll`);
+  await ctx.close();
+}
+
 console.log("\n# Staff see the enquiries; the public can't");
 {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });

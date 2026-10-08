@@ -160,7 +160,7 @@ export function QuoteFormClient({
       aria-labelledby={id("title")}
       className="rounded-[var(--radius-panel)] border-2 border-navy bg-paper px-5 py-6 shadow-[0_18px_40px_-24px_rgba(10,34,89,.45)] sm:px-7 sm:py-7 lg:px-8 lg:py-8"
     >
-      <TitleTag id={id("title")} className="text-[1.75rem]">
+      <TitleTag id={id("title")} className="text-[1.5rem] sm:text-[1.75rem]">
         {title}
       </TitleTag>
 

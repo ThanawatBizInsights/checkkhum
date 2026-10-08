@@ -276,6 +276,31 @@ select out of line, and plan chips spilling onto a second ragged row.
 
 Screenshots before and after (390, 768, 1024, 1366): `docs/screenshots/quote-form/`.
 
+## Product photography (stage 3)
+
+Three supplied photos, saved as WebP in `public/images/` (`car-insurance-silver-sedan`,
+`ev-insurance-white-crossover-charging`, `travel-insurance-couple-airport`; 77–152 KB,
+1672×941) and listed with Thai alt text and a focal point in `src/content/product-photos.ts`.
+They are statically imported, so next/image knows their size, serves resized AVIF/WebP and
+shows a blur placeholder. พ.ร.บ. has no photo and keeps its icon; nothing is substituted.
+
+- **One treatment** (`ProductPhoto`): 16:10 crop, panel radius, `object-cover` with each
+  photo's own `object-position` (sedan right of centre, EV car plus wall charger, travellers
+  on the right). No text sits on the photos, so busy areas never compete with type.
+- **Product pages** (car, EV, travel): heading, intro and photo in the content column beside
+  the 600px form on desktop; the photo replaces the product icon. Below 1024px the order is
+  photo → heading → "ขอใบเสนอราคา" button (jumps to the form) → form; tablets crop to 2:1 so
+  the form starts in the first screen. The hero photo is preloaded (Next 16 `preload`).
+- **Homepage**: product cards get the same 16:10 strip (photos for car, EV and travel; a
+  light-blue icon panel for พ.ร.บ.), lazy-loaded. The hero's old poster crop (`hero-car.webp`,
+  667px) is replaced by the sedan photo, desktop only and not preloaded because phones never
+  show it. The sedan therefore appears twice on desktop (hero and car card); drop it from the
+  card if that feels repetitive.
+- Form titles drop to 1.5rem below 640px so long names such as "ขอใบเสนอราคาประกันเดินทาง"
+  stay on one line.
+
+Screenshots before and after (390, 768, 1366): `docs/screenshots/product-photos/`.
+
 ## Open items for the client
 
 - Phone number, LINE ID, LINE QR image, email, opening hours and company details
