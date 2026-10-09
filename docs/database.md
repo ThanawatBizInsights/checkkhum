@@ -458,7 +458,7 @@ npm run db:test           # pgTAP: 247 assertions (access control, intake, CRM r
 npm run db:lint
 npm run build && npm start                          # with .env.local → local Supabase
 BASE_URL=http://localhost:3000 npm run verify:enquiries   # 43 end-to-end API checks
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey   # 201 browser checks: each product, confirmation, CRM, failures, year field, layout and product photos at 390–1366px
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey   # 270 browser checks: each product, confirmation, CRM, failures, year field, layout, product photos and LINE contact points
 ```
 
 `verify:enquiries` refuses to run unless Supabase is local, because it

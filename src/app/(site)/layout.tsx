@@ -1,3 +1,4 @@
+import { LineFloatingWidget } from "@/components/line-floating-widget";
 import { MobileQuoteBar } from "@/components/mobile-quote-bar";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -15,6 +16,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
       <main id="main">{children}</main>
       <SiteFooter />
       <MobileQuoteBar />
+      <LineFloatingWidget />
     </>
   );
 }

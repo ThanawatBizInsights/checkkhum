@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { LineAddFriendButton } from "./line-links";
 import { NavLinks } from "./nav-links";
 
 export function MobileMenu() {
@@ -39,6 +40,10 @@ export function MobileMenu() {
           linkClassName="block border-b border-line py-3 text-lg font-semibold text-navy"
           onNavigate={() => setOpen(false)}
         />
+        {/* On phones the header has no room for LINE's button, so it lives here. */}
+        <div className="wrap pb-4 pt-3 sm:hidden">
+          <LineAddFriendButton />
+        </div>
       </nav>
     </div>
   );

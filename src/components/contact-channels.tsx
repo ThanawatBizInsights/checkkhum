@@ -1,6 +1,4 @@
-import Image from "next/image";
-import { siteConfig } from "@/config/site";
-import { emailChannel, hoursText, lineChannel, phoneChannel, type ContactChannel } from "@/lib/contact";
+import { emailChannel, hoursText, lineChannel, lineQrImage, phoneChannel, type ContactChannel } from "@/lib/contact";
 import { LineIcon, MailIcon, PhoneIcon } from "./icons";
 
 function Channel({
@@ -38,13 +36,22 @@ function Channel({
 }
 
 /** Phone, LINE (and optionally email + hours) from the central config. */
-export function ContactChannels({ tone = "dark", showEmail = false }: { tone?: "dark" | "light"; showEmail?: boolean }) {
+export function ContactChannels({
+  tone = "dark",
+  showEmail = false,
+  showLine = true,
+}: {
+  tone?: "dark" | "light";
+  showEmail?: boolean;
+  /** Off where a fuller LINE block (QR + official button) sits next to the list. */
+  showLine?: boolean;
+}) {
   return (
     <div>
       {/* Only configured channels are shown; nothing placeholder-like reaches the public. */}
       <ul className="grid gap-3.5">
         {phoneChannel.href && <Channel icon={PhoneIcon} label="โทร" channel={phoneChannel} tone={tone} />}
-        {lineChannel.href && <Channel icon={LineIcon} label="LINE" channel={lineChannel} tone={tone} />}
+        {showLine && lineChannel.href && <Channel icon={LineIcon} label="LINE" channel={lineChannel} tone={tone} />}
         {showEmail && emailChannel.href && <Channel icon={MailIcon} label="อีเมล" channel={emailChannel} tone={tone} />}
       </ul>
       {hoursText && (
@@ -54,16 +61,30 @@ export function ContactChannels({ tone = "dark", showEmail = false }: { tone?: "
   );
 }
 
-/** LINE QR code; renders nothing until a QR image is configured. */
+/**
+ * LINE OA QR code: square, uncropped, on white with a quiet zone so phones can
+ * scan it. Plain <img> so LINE's image is shown exactly as issued (not
+ * re-encoded). Renders nothing until a QR image is configured.
+ */
 export function LineQr({ tone = "dark" }: { tone?: "dark" | "light" }) {
-  const src = siteConfig.contact.lineQrImage;
-  if (!src) return null;
+  if (!lineQrImage) return null;
   return (
-    <figure className="m-0">
-      <div className={`grid size-40 place-items-center rounded-2xl bg-paper p-2.5 ${tone === "light" ? "border border-line" : ""}`}>
-        <Image src={src} width={140} height={140} alt="QR code สำหรับเพิ่มเพื่อนทาง LINE" className="size-full object-contain" />
+    <figure className="m-0 w-fit">
+      <div className={`rounded-2xl bg-paper p-4 ${tone === "light" ? "border border-line" : ""}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={lineQrImage}
+          width={180}
+          height={180}
+          alt="คิวอาร์โค้ดสำหรับเพิ่มเพื่อน LINE เช็กคุ้ม"
+          loading="lazy"
+          decoding="async"
+          className="block size-[180px]"
+        />
       </div>
-      <figcaption className={`mt-2 text-[0.9375rem] ${tone === "dark" ? "text-paper/85" : "text-ink-soft"}`}>สแกนเพื่อเพิ่มเพื่อนทาง LINE</figcaption>
+      <figcaption className={`mt-2 text-center text-[0.9375rem] font-semibold ${tone === "dark" ? "text-paper" : "text-navy"}`}>
+        สแกนเพื่อเพิ่มเพื่อน LINE
+      </figcaption>
     </figure>
   );
 }

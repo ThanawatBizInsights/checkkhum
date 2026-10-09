@@ -58,10 +58,16 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
   component. Read from `siteConfig` via `src/lib/contact.ts`. Never invent real-looking values;
   empty config values are hidden on public pages (only the draft privacy notice marks them).
 - **LINE links:** every LINE button uses `siteConfig.contact.lineUrl` through
-  `src/components/line-links.tsx` (`LineButton`, `LineAddFriendButton`, `lineLinkProps`),
-  opening in a new tab with `rel="noopener noreferrer"`. LINE links never carry form
-  details; enquiries are always saved through `/api/enquiries`. Use LINE's official
-  "เพิ่มเพื่อน" image unmodified (plain `<img>` from `scdn.line-apps.com`, height 36).
+  `src/components/line-links.tsx` (`LineButton`, `LineAddFriendButton`, `LineTextLink`,
+  `lineLinkProps`), opening in a new tab with `rel="noopener noreferrer"`. LINE links never
+  carry form details; enquiries are always saved through `/api/enquiries`. Use LINE's official
+  "เพิ่มเพื่อน" image (`contact.lineAddFriendImage`) unmodified (plain `<img>`, height 36)
+  and the OA QR (`contact.lineQrImage`) square and uncropped. Never show the raw LINE URL
+  or account ID as text. There is one floating LINE control, `LineFloatingWidget`, on public
+  pages only; it must keep stepping aside for any form in `main`, the footer and focused
+  fields, and stay closed for the session once dismissed.
+- **Office and map:** office details live in `siteConfig.office`. Only embed a map or link a
+  pin the business has confirmed (`mapPinUrl`, `mapEmbedUrl`); otherwise use the address search.
 - **Secrets:** `SUPABASE_SECRET_KEY`, `ENQUIRY_HASH_SALT` and `TURNSTILE_SECRET_KEY` are
   server-only. (`SUPABASE_PUBLISHABLE_KEY` is not secret, but is also only used server-side.) Read them only in `src/lib/server/*` (which imports
   `server-only`) or server routes. Never prefix them with `NEXT_PUBLIC_`, log them, return

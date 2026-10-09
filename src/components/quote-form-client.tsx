@@ -20,7 +20,7 @@ import { Button } from "./button";
 import { DemoNotice, IntakeUnavailableNotice } from "./demo-notice";
 import { EnquiryResult } from "./enquiry-result";
 import { ChipGroup, SelectField, TextAreaField, TextField } from "./form-fields";
-import { LineButton } from "./line-links";
+import { LineButton, LineTextLink } from "./line-links";
 import { useEnquirySubmission } from "./use-enquiry-submission";
 
 export type SubmissionMode = "database" | "demo" | "unavailable";
@@ -341,6 +341,11 @@ export function QuoteFormClient({
               <Link href="/privacy" className="whitespace-nowrap text-teal-ink underline underline-offset-4">
                 ประกาศความเป็นส่วนตัว
               </Link>
+            </p>
+            {/* An alternative for people who would rather chat; it never sends the form. */}
+            <p className="flex flex-wrap items-center gap-x-2 border-t border-line pt-4 text-[0.9375rem] text-ink-soft">
+              ไม่สะดวกกรอกฟอร์ม?
+              <LineTextLink />
             </p>
           </form>
         </>

@@ -1,4 +1,5 @@
 import { ButtonLink } from "./button";
+import { LineAddFriendButton } from "./line-links";
 import { Logo } from "./logo";
 import { MobileMenu } from "./mobile-menu";
 import { NavLinks } from "./nav-links";
@@ -11,7 +12,11 @@ export function SiteHeader() {
         <nav aria-label="เมนูหลัก" className="hidden lg:block">
           <NavLinks className="flex items-center gap-1" linkClassName="rounded-lg px-3 py-2 font-semibold text-navy hover:bg-sky" />
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Below 640px the header has no room: the button moves into the menu. */}
+          <span className="hidden sm:inline-flex">
+            <LineAddFriendButton />
+          </span>
           <ButtonLink href="/quote" size="sm">
             ขอใบเสนอราคา
           </ButtonLink>

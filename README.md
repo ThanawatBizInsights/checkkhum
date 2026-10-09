@@ -62,16 +62,25 @@ npm start
 All contact details are in **`src/config/site.ts`**: phone, LINE Official Account link,
 LINE ID, LINE QR image, email, opening hours, and the company details used in the privacy
 notice. **Empty values are hidden** on public pages (no placeholder text, no empty QR box);
-only the draft privacy notice marks missing legal details for review. For the
-QR code, add the image to `public/images/` and set `lineQrImage`, e.g. `"/images/line-qr.png"`.
+only the draft privacy notice marks missing legal details for review.
 
-**LINE.** `contact.lineUrl` (currently `https://lin.ee/86TezJV`) is used by every LINE
-button: the mobile sticky bar ("LINE"), the
-official "เพิ่มเพื่อน" button in the contact sections, the contact lists and footer, and
-the quotation confirmation ("ติดต่อทีมงานผ่าน LINE"). All open in a new tab with
-`rel="noopener noreferrer"`. The link only opens the LINE chat; it never sends form
-details. Enquiries are still saved through `/api/enquiries`, and the confirmation asks
-the visitor to quote their reference number in the chat.
+**LINE.** Three values in `contact` drive every LINE element:
+
+| Key | Current value | Used by |
+|---|---|---|
+| `lineUrl` | `https://lin.ee/sAdMA0r` | every LINE link |
+| `lineAddFriendImage` | LINE's official Thai button (`scdn.line-apps.com/…/th.png`) | header (640px+), mobile menu, footer, contact page |
+| `lineQrImage` | `https://qr-official.line.me/gs/M_103yhsnv_GW.png?oat_content=qr` | contact page and contact band, captioned "สแกนเพื่อเพิ่มเพื่อน LINE" |
+
+Also: the floating widget (`LineFloatingWidget`, public pages only), "คุยกับเราผ่าน LINE"
+under every quote form, and the quotation confirmation. All open in a new tab with
+`rel="noopener noreferrer"`; links never show the raw URL. The link only opens the LINE
+chat; it never sends form details. Enquiries are still saved through `/api/enquiries`.
+
+**Office and map.** `office` holds the company name and address shown on `/contact`.
+"เปิดใน Google Maps" runs an address search until `mapPinUrl` is set to the confirmed
+pin. A map is embedded only when `mapEmbedUrl` holds a `https://www.google.com/maps/embed?pb=…`
+URL (Google Maps › Share › Embed a map). Never fill these with guessed coordinates.
 
 ## Enquiry database (Supabase)
 
@@ -258,7 +267,7 @@ npx supabase db reset
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 160 customer portal + registration checks
 npx supabase db reset   # app built and started with the test LINE settings in scripts/verify-line.mjs
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:line     # 62 LINE Login checks
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey  # 201 quote journey checks (UNCONFIGURED_URL=… adds the no-settings case)
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey  # 270 quote journey checks (UNCONFIGURED_URL=… adds the no-settings case)
 ```
 
 Full launch audit (mobile layouts at 360/390px, Thai fonts and text size, every internal

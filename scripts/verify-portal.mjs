@@ -25,7 +25,7 @@ const status = JSON.parse(execSync("npx supabase status -o json", { encoding: "u
 if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(status.API_URL)) throw new Error("Refusing to run against a non-local Supabase");
 const MAIL = status.MAILPIT_URL ?? status.INBUCKET_URL;
 const PASSWORD = "checkkhum-local-only";
-const LINE_URL = "https://lin.ee/86TezJV";
+const LINE_URL = "https://lin.ee/sAdMA0r";
 const sql = (q) => execFileSync("psql", [status.DB_URL, "-At", "-c", q], { encoding: "utf8" }).trim();
 
 const POLICY_A = "77777777-7777-4777-8777-777777777701";

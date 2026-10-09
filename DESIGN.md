@@ -89,7 +89,7 @@ product page, desktop                      product page, mobile
   outline button variant.
 - The table caption repeated the section heading; reworded it to say what the table does.
 
-## LINE Official Account (lin.ee/86TezJV)
+## LINE Official Account (first version, superseded by "LINE contact points" below)
 
 - **Hierarchy:** LINE is the second way to get a quote, so its buttons are quiet
   outline buttons (white, navy text) with the LINE icon in LINE's green
@@ -300,6 +300,30 @@ shows a blur placeholder. พ.ร.บ. has no photo and keeps its icon; nothing 
   stay on one line.
 
 Screenshots before and after (390, 768, 1366): `docs/screenshots/product-photos/`.
+
+## LINE contact points and office (stage 4)
+
+Reference: the supplied screenshots of a bottom-right "แอดไลน์…" chip and a LINE QR modal.
+
+- **One link, one place:** `lineUrl` `https://lin.ee/sAdMA0r`, LINE's official Thai button and
+  the OA QR are config values; the old `lin.ee/86TezJV` is gone. No link shows a raw URL or ID.
+- **Header:** official button (36px, aspect kept, 116×36 box reserved while it loads) just left
+  of "ขอใบเสนอราคา" from 640px; below that it moves into the menu so the header never overflows.
+- **Floating widget:** white card with a LINE-green round logo, "แอดไลน์เพื่อเช็กเบี้ย",
+  "ส่งคำขอเช็กเบี้ยประกันรถฟรีได้ 24 ชม." (about sending a request any time, not about reply
+  times) and a teal "เพิ่มเพื่อน LINE" label; 340px bottom-right on desktop, a compact
+  full-width card above the quote bar on phones (the whole card is the link). No overlay;
+  close button (44px, labelled) keeps it closed for the session (`sessionStorage`). It fades
+  out while any form (quote, contact, login, registration), the footer or a focused field (keyboard) is on screen, so
+  it never covers fields or submit buttons; because product-page forms are sticky on desktop,
+  the widget stays out of the way there and the header button carries LINE. The phone quote
+  bar lost its own LINE button so there is only one floating LINE control.
+- **Contact page:** "คุยกับเราผ่าน LINE" card (QR 180px on white with a 16px quiet zone,
+  caption "สแกนเพื่อเพิ่มเพื่อน LINE", plus the official button for people already on their
+  phone); "ที่ตั้งสำนักงาน" with the address as text and a "เปิดใน Google Maps" button. The map
+  embed appears only once a confirmed pin is configured.
+- **Elsewhere:** "ไม่สะดวกกรอกฟอร์ม? คุยกับเราผ่าน LINE" under every quote form; the official
+  button in the footer.
 
 ## Open items for the client
 

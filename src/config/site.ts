@@ -17,17 +17,40 @@ export const siteConfig = {
     /** Mobile or landline, digits only or with dashes, e.g. "081-234-5678". */
     phone: "",
     /**
-     * LINE Official Account link. Every LINE button on the site opens this.
-     * It only opens the chat: it never sends form details to LINE.
+     * LINE Official Account add-friend link. Every LINE button, the header
+     * button, the floating widget and the QR card open this. It only opens
+     * the chat: it never sends form details to LINE.
      */
-    lineUrl: "https://lin.ee/86TezJV",
-    /** LINE Official Account ID including "@", e.g. "@checkkhum". Shown as text if set. */
+    lineUrl: "https://lin.ee/sAdMA0r",
+    /**
+     * LINE Official Account ID including "@", e.g. "@checkkhum". Shown as text
+     * only if set; otherwise links read "เพิ่มเพื่อน LINE" (never a raw URL).
+     */
     lineId: "",
-    /** Path under /public to the LINE QR image, e.g. "/images/line-qr.png". */
-    lineQrImage: "",
+    /** LINE's official Thai "เพิ่มเพื่อน" button artwork, used unmodified from LINE's CDN. */
+    lineAddFriendImage: "https://scdn.line-apps.com/n/line_add_friends/btn/th.png",
+    /**
+     * LINE OA QR code (LINE-hosted image or a path under /public). Shown
+     * square and uncropped with "สแกนเพื่อเพิ่มเพื่อน LINE".
+     */
+    lineQrImage: "https://qr-official.line.me/gs/M_103yhsnv_GW.png?oat_content=qr",
     email: "",
     /** e.g. "จันทร์–เสาร์ 9:00–18:00 น." */
     hours: "",
+  },
+
+  /**
+   * Office shown on the contact page. `mapPinUrl` / `mapEmbedUrl` stay empty
+   * until the business confirms the exact Google Maps pin: until then the
+   * "เปิดใน Google Maps" button runs an address search and no map is embedded.
+   * `mapEmbedUrl` must be a https://www.google.com/maps/embed?pb=… URL
+   * (Google Maps › Share › Embed a map).
+   */
+  office: {
+    companyName: "บริษัท แสงพันล้าน จำกัด",
+    addressLines: ["89/9-10 หมู่ 3 ต.บางม่วง อ.บางใหญ่", "จ.นนทบุรี 11140"],
+    mapPinUrl: "",
+    mapEmbedUrl: "",
   },
 
   /**

@@ -23,7 +23,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 
 const B = process.env.BASE_URL ?? "http://localhost:3000";
 const UNCONFIGURED = process.env.UNCONFIGURED_URL;
-const LINE_URL = "https://lin.ee/86TezJV";
+const LINE_URL = "https://lin.ee/sAdMA0r";
 const status = JSON.parse(execSync("npx supabase status -o json", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
 if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(status.API_URL)) throw new Error("Refusing to run against a non-local Supabase");
 const sql = (q) => execFileSync("psql", [status.DB_URL, "-At", "-c", q], { encoding: "utf8" }).trim();
@@ -249,6 +249,151 @@ for (const [w, h] of [[390, 844], [768, 1024], [1366, 900]]) {
   ok((await p.locator('img[src*="hero-car"]').count()) === 0, `${w}px homepage: old poster image removed`);
   ok((await p.evaluate(() => document.documentElement.scrollWidth)) <= w, `${w}px homepage: no horizontal scroll`);
   await ctx.close();
+}
+
+console.log("\n# LINE: header button, QR, contact page, footer, floating widget");
+{
+  const ADD_IMG = "https://scdn.line-apps.com/n/line_add_friends/btn/th.png";
+  const QR_IMG = "https://qr-official.line.me/gs/M_103yhsnv_GW.png?oat_content=qr";
+  const isLineLink = async (a) => (await a.getAttribute("href")) === LINE_URL && (await a.getAttribute("target")) === "_blank" && (await a.getAttribute("rel")) === "noopener noreferrer";
+
+  // Pages: every LINE link points at the new OA link, the old one is gone, no raw URL shown.
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const p = await ctx.newPage();
+  for (const path of ["/", "/car-insurance", "/quote", "/contact", "/privacy"]) {
+    const res = await p.goto(`${B}${path}`, { waitUntil: "networkidle" });
+    const html = await res.text();
+    const hrefs = await p.locator("[data-line-link]").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+    ok(!html.includes("86TezJV") && hrefs.length > 0 && hrefs.every((h) => h === LINE_URL), `${path}: ${hrefs.length} LINE links, all ${LINE_URL}; old link gone`);
+    const text = await p.locator("body").innerText();
+    ok(!/lin\.ee|line\.me|M_103yhsnv|sAdMA0r/.test(text), `${path}: no raw LINE URL or account ID shown as text`);
+    const footerBtn = p.locator("footer [data-line-link] img");
+    ok((await footerBtn.getAttribute("src")) === ADD_IMG && (await isLineLink(p.locator("footer [data-line-link]").first())), `${path}: footer has the official add-friend button`);
+  }
+
+  // Desktop header: official button beside "ขอใบเสนอราคา".
+  await p.goto(`${B}/`, { waitUntil: "networkidle" });
+  const headerLink = p.locator("header [data-line-link]").first();
+  const img = headerLink.locator("img");
+  const [imgBox, quoteBox] = [await img.boundingBox(), await p.locator("header").getByRole("link", { name: "ขอใบเสนอราคา" }).boundingBox()];
+  ok((await img.getAttribute("src")) === ADD_IMG && (await img.getAttribute("alt")) === "เพิ่มเพื่อน LINE เช็กคุ้ม" && Math.round(imgBox.height) === 36,
+    `1440px header: official button, alt "เพิ่มเพื่อน LINE เช็กคุ้ม", 36px tall`);
+  ok((await isLineLink(headerLink)) && imgBox.x + imgBox.width <= quoteBox.x && Math.abs(imgBox.y + imgBox.height / 2 - (quoteBox.y + quoteBox.height / 2)) < 4,
+    "1440px header: button opens LINE in a new tab, sits just left of ขอใบเสนอราคา, vertically centred");
+  await headerLink.focus();
+  ok(await headerLink.evaluate((a) => getComputedStyle(a).outlineStyle !== "none" || getComputedStyle(a).boxShadow !== "none"), "header LINE button shows a visible focus outline");
+
+  // Contact page: office, Maps link, QR.
+  await p.goto(`${B}/contact`, { waitUntil: "networkidle" });
+  const address = (await p.locator("address").innerText()).replace(/\s+/g, " ");
+  ok(address.includes("บริษัท แสงพันล้าน จำกัด") && address.includes("89/9-10 หมู่ 3 ต.บางม่วง อ.บางใหญ่") && address.includes("จ.นนทบุรี 11140"), "contact: office name and address as text");
+  const maps = p.getByRole("link", { name: /เปิดใน Google Maps/ });
+  const mapsHref = await maps.getAttribute("href");
+  ok(mapsHref.startsWith("https://www.google.com/maps/search/?api=1&query=") && decodeURIComponent(mapsHref).includes("89/9-10 หมู่ 3 ต.บางม่วง อ.บางใหญ่ จ.นนทบุรี 11140") && (await maps.getAttribute("target")) === "_blank",
+    "contact: เปิดใน Google Maps runs an address search in a new tab (no unconfirmed pin)");
+  ok((await p.locator("main iframe").count()) === 0, "contact: no embedded map until the pin is confirmed");
+  const qr = p.locator(`main img[src="${QR_IMG}"]`);
+  const qrBox = await qr.boundingBox();
+  ok(Math.round(qrBox.width) === 180 && Math.round(qrBox.height) === 180 && (await p.locator("main figure", { has: p.locator(`img[src="${QR_IMG}"]`) }).first().innerText()).includes("สแกนเพื่อเพิ่มเพื่อน LINE"),
+    "contact: QR 180×180, square, captioned สแกนเพื่อเพิ่มเพื่อน LINE");
+  const quiet = await qr.evaluate((i) => { const pad = getComputedStyle(i.parentElement); return parseFloat(pad.paddingLeft) >= 12 && pad.backgroundColor === "rgb(255, 255, 255)"; });
+  ok(quiet, "contact: QR on white with a clear margin");
+  ok(await isLineLink(p.locator("main [data-line-link] img").first().locator("xpath=..")), "contact: official add-friend button");
+
+  // Quote form: LINE as an alternative.
+  await p.goto(`${B}/quote`, { waitUntil: "networkidle" });
+  const alt = p.locator("[data-quote-form]").getByRole("link", { name: /คุยกับเราผ่าน LINE/ });
+  ok(await isLineLink(alt), "quote form: คุยกับเราผ่าน LINE alternative");
+  await ctx.close();
+
+  // Staff pages stay free of the marketing widget and header button.
+  const s = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const sp = await s.newPage();
+  await sp.goto(`${B}/staff/login`, { waitUntil: "networkidle" });
+  await sp.waitForTimeout(400);
+  ok((await sp.locator("[data-line-widget]").count()) === 0 && (await sp.locator("header [data-line-link]").count()) === 0, "staff login: no LINE widget or header button");
+  await s.close();
+
+  // Floating widget at each width.
+  for (const [w, h] of [[375, 667], [390, 844], [768, 1024], [1440, 900]]) {
+    const c = await browser.newContext({ viewport: { width: w, height: h } });
+    const q = await c.newPage();
+    await q.goto(`${B}/privacy`, { waitUntil: "networkidle" }); // a page without forms
+    const widget = q.locator("[data-line-widget]");
+    await widget.waitFor({ state: "attached", timeout: 5000 });
+    await q.waitForTimeout(350);
+    const box = await widget.boundingBox();
+    const wText = await widget.innerText();
+    ok(wText.includes("แอดไลน์เพื่อเช็กเบี้ย") && wText.includes("ส่งคำขอเช็กเบี้ยประกันรถฟรีได้ 24 ชม.") && !/lin\.ee|http|@/.test(wText), `${w}px widget: Thai heading and text only, no URL or ID`);
+    ok(await isLineLink(widget.locator("[data-line-link]")), `${w}px widget: opens the LINE OA in a new tab`);
+    if (w >= 768) {
+      ok(Math.round(w - (box.x + box.width)) === 24 && Math.round(h - (box.y + box.height)) === 24 && box.width <= 340, `${w}px widget: bottom-right card, ${Math.round(box.width)}px wide`);
+      ok(wText.includes("เพิ่มเพื่อน LINE"), `${w}px widget: "เพิ่มเพื่อน LINE" button`);
+    } else {
+      const bar = await q.getByRole("link", { name: "ขอใบเสนอราคา" }).last().boundingBox();
+      ok(box.x >= 16 && box.x + box.width <= w - 16 && box.y + box.height <= bar.y - 4 && box.height <= 110, `${w}px widget: compact (${Math.round(box.height)}px), above the quote bar, within the margins`);
+    }
+    ok((await q.evaluate(() => document.documentElement.scrollWidth)) <= w, `${w}px widget page: no horizontal scroll`);
+
+    // Steps aside while a field has focus (on-screen keyboard), and for the footer.
+    await q.evaluate(() => {
+      const f = Object.assign(document.createElement("input"), { id: "probe-field" });
+      f.style.cssText = "position:fixed;top:0;left:0;width:10px";
+      document.body.append(f);
+      f.focus();
+    });
+    await q.waitForTimeout(300);
+    ok(await widget.evaluate((el) => el.inert && getComputedStyle(el).opacity === "0"), `${w}px widget: hidden while a field has focus (keyboard)`);
+    await q.evaluate(() => document.getElementById("probe-field").remove());
+    await q.waitForTimeout(300);
+    await q.locator("footer").scrollIntoViewIfNeeded();
+    await q.waitForTimeout(400);
+    ok(await widget.evaluate((el) => el.inert), `${w}px widget: steps aside at the footer`);
+    await q.evaluate(() => window.scrollTo(0, 0));
+    await q.waitForTimeout(400);
+
+    // Keyboard: the close button is reachable and labelled; dismissal lasts for the session.
+    const close = widget.getByRole("button", { name: "ปิดกล่องเพิ่มเพื่อน LINE" });
+    await close.focus();
+    await q.keyboard.press("Enter");
+    await q.waitForTimeout(200);
+    ok((await widget.count()) === 0, `${w}px widget: closes with the keyboard`);
+    await q.goto(`${B}/`, { waitUntil: "networkidle" });
+    await q.waitForTimeout(300);
+    ok((await q.locator("[data-line-widget]").count()) === 0, `${w}px widget: stays closed on the next page this session`);
+    if (w === 390) {
+      const fresh = await c.newPage(); // new tab = new session storage
+      await fresh.goto(`${B}/privacy`, { waitUntil: "networkidle" });
+      await fresh.locator("[data-line-widget]").waitFor({ state: "attached", timeout: 5000 });
+      ok(true, "widget: a new session shows it again");
+    }
+    await c.close();
+  }
+
+  // Never over the quote form: hidden while it is on screen.
+  for (const w of [390, 1440]) {
+    const c = await browser.newContext({ viewport: { width: w, height: 900 } });
+    const q = await c.newPage();
+    await q.goto(`${B}/quote`, { waitUntil: "networkidle" });
+    await q.waitForTimeout(400);
+    ok(await q.locator("[data-line-widget]").evaluate((el) => el.inert && getComputedStyle(el).pointerEvents === "none"), `${w}px /quote: widget out of the way while the form is on screen`);
+    await q.goto(`${B}/contact`, { waitUntil: "networkidle" });
+    await q.locator("[data-contact-form]").scrollIntoViewIfNeeded();
+    await q.waitForTimeout(400);
+    ok(await q.locator("[data-line-widget]").evaluate((el) => el.inert), `${w}px /contact: widget out of the way while the callback form is on screen`);
+    await c.close();
+  }
+
+  // Phones: no header overflow; the LINE button is in the menu instead.
+  for (const w of [375, 390]) {
+    const c = await browser.newContext({ viewport: { width: w, height: 800 } });
+    const q = await c.newPage();
+    await q.goto(`${B}/`, { waitUntil: "networkidle" });
+    ok(!(await q.locator("header [data-line-link]").first().isVisible()) && (await q.evaluate(() => document.documentElement.scrollWidth)) <= w, `${w}px header: no LINE button squeezed in, no overflow`);
+    await q.getByRole("button", { name: "เมนู" }).click();
+    ok(await q.getByRole("navigation", { name: "เมนูหลัก" }).locator("[data-line-link]").isVisible(), `${w}px menu: official LINE button inside the menu`);
+    await c.close();
+  }
 }
 
 console.log("\n# Staff see the enquiries; the public can't");

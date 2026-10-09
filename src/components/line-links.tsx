@@ -1,4 +1,4 @@
-import { lineUrl } from "@/lib/contact";
+import { lineAddFriendImage, lineUrl } from "@/lib/contact";
 import { buttonClasses } from "./button";
 import { LineIcon } from "./icons";
 
@@ -36,19 +36,36 @@ export function LineButton({
   );
 }
 
-/** LINE's official "เพิ่มเพื่อน" (Add Friend) button, served from LINE's CDN as-is. */
-export function LineAddFriendButton() {
-  if (!lineLinkProps) return null;
+/**
+ * LINE's official "เพิ่มเพื่อน" (Add Friend) button, served from LINE's CDN as-is.
+ * 36px tall; the width follows the artwork's own aspect ratio (a 116×36 box is
+ * reserved until it loads, so nothing jumps).
+ */
+export function LineAddFriendButton({ className = "" }: { className?: string }) {
+  if (!lineLinkProps || !lineAddFriendImage) return null;
   return (
-    <a {...lineLinkProps} data-line-link className="inline-block rounded-md">
+    <a {...lineLinkProps} data-line-link className={`inline-flex shrink-0 rounded-md ${className}`}>
       {/* LINE's official button artwork must be used unmodified, so it is not re-encoded by next/image. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="https://scdn.line-apps.com/n/line_add_friends/btn/th.png"
-        alt="เพิ่มเพื่อน เช็กคุ้ม ผ่าน LINE"
+        src={lineAddFriendImage}
+        alt="เพิ่มเพื่อน LINE เช็กคุ้ม"
         height={36}
-        className="h-9 w-auto"
+        decoding="async"
+        className="block h-9 w-auto [aspect-ratio:auto_116/36]"
       />
+      <NewTabHint />
+    </a>
+  );
+}
+
+/** Quiet text link to LINE, e.g. as an alternative beside a quotation form. */
+export function LineTextLink({ children = "คุยกับเราผ่าน LINE", className = "" }: { children?: React.ReactNode; className?: string }) {
+  if (!lineLinkProps) return null;
+  return (
+    <a {...lineLinkProps} data-line-link className={`inline-flex min-h-11 items-center gap-2 font-semibold text-teal-ink underline underline-offset-4 ${className}`}>
+      <LineIcon className="size-6 shrink-0 text-line-brand" />
+      {children}
       <NewTabHint />
     </a>
   );
