@@ -24,9 +24,31 @@ export const phoneChannel: ContactChannel = phoneDigits
 /** The LINE Official Account link from the config, or null if not set. */
 export const lineUrl: string | null = contact.lineUrl || null;
 
+/** Link text for LINE: the OA ID if configured, otherwise plain Thai (never the raw URL). */
 export const lineChannel: ContactChannel = lineUrl
-  ? { display: contact.lineId || lineUrl.replace(/^https?:\/\//, ""), href: lineUrl }
+  ? { display: contact.lineId || "เพิ่มเพื่อน", href: lineUrl }
   : { display: placeholders.lineId, href: null };
+
+/** LINE's official add-friend button image and the OA QR image, or null if not set. */
+export const lineAddFriendImage: string | null = contact.lineAddFriendImage || null;
+export const lineQrImage: string | null = contact.lineQrImage || null;
+
+const { office: officeConfig } = siteConfig;
+const officeAddressQuery = officeConfig.addressLines.join(" ");
+
+/**
+ * Office details for the contact page. The Maps link is the confirmed pin
+ * when configured, otherwise an address search (never invented coordinates).
+ */
+export const office = {
+  companyName: officeConfig.companyName,
+  addressLines: officeConfig.addressLines as readonly string[],
+  mapsHref:
+    officeConfig.mapPinUrl ||
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(officeAddressQuery)}`,
+  pinConfirmed: Boolean(officeConfig.mapPinUrl),
+  embedUrl: /^https:\/\/www\.google\.com\/maps\/embed\?/.test(officeConfig.mapEmbedUrl) ? officeConfig.mapEmbedUrl : null,
+};
 
 export const emailChannel: ContactChannel = contact.email
   ? { display: contact.email, href: `mailto:${contact.email}` }

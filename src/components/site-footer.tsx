@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { products, productOrder } from "@/content/products";
-import { hoursText, lineChannel, phoneChannel } from "@/lib/contact";
+import { hoursText, phoneChannel } from "@/lib/contact";
+import { LineAddFriendButton } from "./line-links";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-paper/15 bg-navy-deep pb-28 pt-12 text-paper/85 md:pb-10">
+    <footer data-site-footer className="border-t border-paper/15 bg-navy-deep pb-28 pt-12 text-paper/85 md:pb-10">
       <div className="wrap grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <p className="font-display text-xl font-semibold text-paper">
@@ -38,15 +39,9 @@ export function SiteFooter() {
                 </a>
               </li>
             )}
-            {lineChannel.href && (
-              <li>
-                LINE{" "}
-                <a href={lineChannel.href} target="_blank" rel="noopener noreferrer" data-line-link className="hover:text-paper hover:underline">
-                  {lineChannel.display}
-                  <span className="sr-only"> (เปิดในแท็บใหม่)</span>
-                </a>
-              </li>
-            )}
+            <li className="py-1.5">
+              <LineAddFriendButton />
+            </li>
             {hoursText && <li>{hoursText}</li>}
             <li>
               <Link href="/contact" className="hover:text-paper hover:underline">

@@ -12,6 +12,7 @@ import {
 import { countLinks, enquirySchema, fieldErrors, planToProduct, type EnquiryRequest } from "@/lib/server/enquiry-validation";
 import { getBackendConfig, getTurnstileSecret, missingEnquirySettings, submissionMode } from "@/lib/server/env";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
+import { parseLineContact } from "@/lib/line-contact";
 import { createUserClient } from "@/lib/server/supabase-user";
 
 /**
@@ -186,6 +187,16 @@ async function signedInUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+/**
+ * Optional LINE ID / shared link typed with the quote, kept only when the
+ * visitor chose LINE. Stored as typed and unverified (never matched to anyone).
+ */
+function lineDetails(input: EnquiryRequest & { type: "quote" }) {
+  if (input.preferredChannel !== "line") return {};
+  const line = parseLineContact(input.lineContact);
+  return line.ok ? { line_id: line.lineId ?? null, line_url: line.lineUrl ?? null } : {};
+}
+
 /** Structured quote answers for submit_enquiry; only the fields that belong to the chosen product. */
 function quoteDetails(input: EnquiryRequest) {
   if (input.type !== "quote") return {};
@@ -205,6 +216,7 @@ function quoteDetails(input: EnquiryRequest) {
     model_year: travel ? null : input.carYear ?? null,
     renewal_timing: input.renewalTiming ?? null,
     details,
+    ...lineDetails(input),
     travel_destination: travel ? input.destination ?? null : null,
     travel_days: travel ? input.tripDays ?? null : null,
     travellers: travel ? input.travellers ?? null : null,

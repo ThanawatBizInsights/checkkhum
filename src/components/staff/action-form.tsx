@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useId, useRef, type ReactNode } from "react";
 import { buttonClasses } from "../button";
 
 export type ActionResult = { ok: boolean; message: string | null; fieldErrors?: Record<string, string> };
@@ -72,7 +72,16 @@ export function ActionForm({
       action={formAction}
       className={inline ? "inline" : className}
       onSubmit={(e) => {
-        if (confirmText && !window.confirm(confirmText)) e.preventDefault();
+        e.preventDefault();
+        if (confirmText && !window.confirm(confirmText)) return;
+        // Submit through a transition instead of the form's action attribute:
+        // React resets an action-bound form after every submission, which would
+        // wipe what staff typed when the server rejects it. Clearing after a
+        // success stays opt-in (resetOnSuccess). Without JavaScript the action
+        // attribute still submits the form.
+        const submitter = (e.nativeEvent as SubmitEvent).submitter;
+        const data = new FormData(e.currentTarget, submitter instanceof HTMLElement ? submitter : undefined);
+        startTransition(() => formAction(data));
       }}
     >
       {children}

@@ -16,6 +16,7 @@ has been applied. Add a new one with `npx supabase migration new <name>`.
 | `20261008090000_customer_portal_enum.sql` | Enquiry source `customer_portal` (own migration: a new enum value can't be used in the same transaction) |
 | `20261008090100_customer_portal.sql` | Customer portal: invitations, account links, policy documents + private storage bucket, portal functions, renewal requests |
 | `20261010090000_line_login.sql` | LINE Login: `customer_line_accounts` (one LINE user per login), server-only `line_login_user()` / `link_line_account()`, LINE invitation links (`create_line_invitation()`, `accept_invitation_token()`), profile source `line` |
+| `20261012090000_customer_line_contact.sql` | Customer LINE contact details: `customers.line_display_name`, `line_url`, `line_contact_source` (`staff_entry`/`web_form`, always unverified), `line_contact_updated_at`; format checks `private.is_line_id()` / `private.is_line_url()` (https, LINE hosts only); `enquiries.contact_line_id` / `contact_line_url` kept as submitted; staff cannot change an enquiry's contact name, phone or LINE details; `submit_enquiry` stores the visitor's optional LINE ID/link (on a new customer as `web_form`, never on an existing one) |
 | `20261011090000_quote_details.sql` | Quote form v2: `enquiries.renewal_timing` (fixed list) and `enquiries.details` (small JSON object of product answers: usage, repair, EV home charger, พ.ร.บ. vehicle type, trip start); `submit_enquiry` stores brand and model in `vehicles.make` / `vehicles.model` and no longer creates an empty vehicle for พ.ร.บ./travel requests |
 | `20261009090000_customer_self_registration.sql` | Self-registration: `customer_profiles` (trigger on `auth.users` + idempotent fallback), `portal_session()`, enquiries submitted while signed in, `portal_overview()` for unlinked logins |
 
@@ -85,6 +86,9 @@ erDiagram
         text phone UK "digits, 0XXXXXXXXX"
         text email
         text line_id
+        text line_display_name
+        text line_url
+        text line_contact_source
         contact_channel preferred_channel
         text notes
     }
@@ -122,6 +126,8 @@ erDiagram
         smallint travellers
         text message
         text renewal_timing
+        text contact_line_id
+        text contact_line_url
         jsonb details
         uuid assigned_to FK
         uuid idempotency_key UK
@@ -318,6 +324,19 @@ backs rate limiting and holds only salted hashes.
 
 ## Access control
 
+**LINE contact details.** Three separate things, never mixed:
+
+| What | Where | Verified? | Who writes it |
+|---|---|---|---|
+| LINE name, ID and shared link for a customer | `customers.line_display_name`, `line_id`, `line_url` | No (`line_contact_source` = `staff_entry` or `web_form`) | Agents and admins in the CRM (`updateCustomerLine`); a new customer's first quote form |
+| What the visitor typed with one enquiry | `enquiries.contact_line_id`, `contact_line_url` | No | `submit_enquiry` only; read-only afterwards |
+| LINE Login identity | `customer_line_accounts.line_user_id` | Yes (ID token verified by LINE) | `link_line_account()` only |
+
+Staff only (RLS on `customers` / `enquiries`); `anon` has no access. Every edit is in
+`audit_logs`. Nothing links or matches customers by LINE name, ID, link or phone, and no
+chat/profile URL is ever built from them: "เปิด LINE" opens only a saved link that passes
+`is_line_url`.
+
 Row level security is enabled on every table. Supabase's default grants to
 `anon` and `authenticated` are revoked explicitly before granting only what
 each role needs.
@@ -454,11 +473,11 @@ sequenceDiagram
 ```bash
 npm run db:start          # local Supabase (Docker)
 npm run db:reset          # apply migrations + fictional seed
-npm run db:test           # pgTAP: 247 assertions (access control, intake, CRM rules, renewal job, customer portal, self-registration, LINE)
+npm run db:test           # pgTAP: 273 assertions (access control, intake, CRM rules, renewal job, customer portal, self-registration, LINE)
 npm run db:lint
 npm run build && npm start                          # with .env.local → local Supabase
-BASE_URL=http://localhost:3000 npm run verify:enquiries   # 43 end-to-end API checks
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey   # 201 browser checks: each product, confirmation, CRM, failures, year field, layout and product photos at 390–1366px
+BASE_URL=http://localhost:3000 npm run verify:enquiries   # 52 end-to-end API checks
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey   # 275 browser checks: each product, confirmation, CRM, failures, year field, layout, product photos and LINE contact points
 ```
 
 `verify:enquiries` refuses to run unless Supabase is local, because it

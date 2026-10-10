@@ -1,64 +1,33 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { lineLinkProps } from "./line-links";
-import { ButtonLink, buttonClasses } from "./button";
-import { LineIcon } from "./icons";
+import { ButtonLink } from "./button";
+import { useAnyInView, useTypingFocus } from "./use-in-view";
 
 /**
- * Floating LINE + quote buttons on phones. Hidden on the quote page and while
- * any quote form (`[data-quote-form]`) is on screen, so it never covers the form.
+ * Floating quote button on phones. LINE lives in the floating LINE widget
+ * (`LineFloatingWidget`), which sits just above this bar. Hidden on the quote
+ * page, while any form is on screen (quote, contact, login…) and while a field
+ * has focus, so it never covers form fields, submit buttons or the keyboard.
  */
 export function MobileQuoteBar() {
   const pathname = usePathname();
-  const [formVisible, setFormVisible] = useState(false);
-
-  useEffect(() => {
-    const targets = document.querySelectorAll("[data-quote-form]");
-    if (!targets.length || !("IntersectionObserver" in window)) return;
-    const visible = new Set<Element>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => (e.isIntersecting ? visible.add(e.target) : visible.delete(e.target)));
-        setFormVisible(visible.size > 0);
-      },
-      { threshold: 0.15 },
-    );
-    targets.forEach((t) => observer.observe(t));
-    return () => {
-      observer.disconnect();
-      setFormVisible(false);
-    };
-  }, [pathname]);
+  const formVisible = useAnyInView("[data-quote-form], main form");
+  const typing = useTypingFocus();
 
   if (pathname === "/quote") return null;
-  const hidden = formVisible;
+  const hidden = formVisible || typing;
 
   return (
     <div
-      className={`fixed inset-x-4 bottom-3 z-10 transition-[opacity,transform] duration-200 md:hidden ${
+      className={`fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+12px)] z-10 transition-[opacity,transform] duration-200 motion-reduce:transition-none md:hidden ${
         hidden ? "pointer-events-none translate-y-4 opacity-0" : ""
       }`}
       aria-hidden={hidden || undefined}
     >
-      <div className="flex gap-2 [&>a]:shadow-[0_10px_24px_-8px_rgba(4,24,63,.5)]">
-        {lineLinkProps && (
-          <a
-            {...lineLinkProps}
-            data-line-link
-            tabIndex={hidden ? -1 : undefined}
-            className={`${buttonClasses("outline", "md")} shrink-0 gap-1.5 px-5`}
-          >
-            <LineIcon className="size-6 text-line-brand" />
-            LINE
-            <span className="sr-only"> (เปิดในแท็บใหม่)</span>
-          </a>
-        )}
-        <ButtonLink href="/quote" block tabIndex={hidden ? -1 : undefined}>
-          ขอใบเสนอราคา
-        </ButtonLink>
-      </div>
+      <ButtonLink href="/quote" block tabIndex={hidden ? -1 : undefined} className="shadow-[0_10px_24px_-8px_rgba(4,24,63,.5)]">
+        ขอใบเสนอราคา
+      </ButtonLink>
     </div>
   );
 }

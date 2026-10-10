@@ -280,7 +280,8 @@ console.log("\n# Staff stay separate");
   await line1.p.goto(`${B}/customer`);
   ok((await line1.p.getByText("DEMO-POL-0002").count()) === 0, "LINE user 1 still sees no one else's policy");
   await agent.p.goto(`${B}/staff/customers/33333333-3333-4333-8333-333333333304`);
-  ok((await agent.p.getByText(/LINE: ไลน์ สอง/).count()) === 1, "CRM shows the account is linked through LINE");
+  ok((await agent.p.getByText(/LINE: ไลน์ สอง/).count()) >= 1, "CRM shows the account is linked through LINE");
+  ok((await agent.p.locator("[data-line-verified]").innerText()).includes("ไลน์ สอง"), "CRM LINE section shows it as verified (from LINE Login)");
   await agent.ctx.close();
 }
 

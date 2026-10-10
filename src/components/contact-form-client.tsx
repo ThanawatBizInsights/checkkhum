@@ -81,7 +81,7 @@ export function ContactFormClient({ mode, turnstileSiteKey }: { mode: Submission
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="relative grid gap-4">
+    <form data-contact-form onSubmit={onSubmit} noValidate className="relative grid gap-4">
       <TextField ref={nameRef} id="contact-name" label="ชื่อที่ให้เราเรียก" autoComplete="given-name" maxLength={120} value={fields.name} onChange={set("name")} error={errors.name} />
       <TextField ref={phoneRef} id="contact-phone" label="เบอร์โทรศัพท์" type="tel" inputMode="tel" autoComplete="tel" placeholder="08x-xxx-xxxx" value={fields.phone} onChange={set("phone")} error={errors.phone} />
       <ChipGroup

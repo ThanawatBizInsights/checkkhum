@@ -70,7 +70,7 @@ for (const width of [360, 390]) {
     // blocks; the page's own fallback is tested in verify:line. Ignore only those.
     const lineBlocked = (text) => currentPath === "/line" && /ERR_TUNNEL_CONNECTION_FAILED|ERR_NAME_NOT_RESOLVED|LiffError/.test(text);
     p.on("pageerror", (e) => !lineBlocked(e.message) && errors.push(e.message));
-    p.on("console", (m) => m.type() === "error" && !m.location().url.includes("scdn.line-apps.com") && !lineBlocked(m.text()) && errors.push(m.text()));
+    p.on("console", (m) => m.type() === "error" && !/scdn\.line-apps\.com|qr-official\.line\.me/.test(m.location().url) && !lineBlocked(m.text()) && errors.push(m.text()));
     for (const path of pages) {
       currentPath = path;
       const res = await p.goto(B + path);

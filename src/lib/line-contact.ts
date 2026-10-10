@@ -1,0 +1,48 @@
+/**
+ * LINE contact details typed by people (staff in the CRM, or visitors in the
+ * quote form). Mirrors the database checks private.is_line_url / is_line_id
+ * (supabase/migrations/20261012090000_customer_line_contact.sql) so errors
+ * show on the field before the database refuses them.
+ *
+ * These details are never verified. The only verified LINE identity is the
+ * LINE Login link in customer_line_accounts. Never build a chat or profile URL
+ * from a phone number, display name, LINE ID or LINE user id: links are only
+ * ever opened exactly as the customer shared them.
+ */
+
+/** https only; LINE's own hosts; the host followed by a path; no spaces or quotes. */
+const LINE_URL = /^https:\/\/(line\.me|www\.line\.me|page\.line\.me|lin\.ee)\/[A-Za-z0-9._~%!$&()*+,;=:@/?#-]+$/;
+/** Optional "@" (Official Accounts), then letters, digits, dot, dash or underscore. */
+const LINE_ID = /^@?[A-Za-z0-9._-]{1,50}$/;
+
+export const LINE_URL_ERROR = "ลิงก์ LINE ต้องขึ้นต้นด้วย https://line.me หรือ https://lin.ee";
+export const LINE_ID_ERROR = "LINE ID ใช้ได้เฉพาะตัวอักษรภาษาอังกฤษ ตัวเลข และ . _ - (ขึ้นต้นด้วย @ ได้)";
+
+export function isLineUrl(value: string): boolean {
+  return value.length <= 300 && LINE_URL.test(value);
+}
+
+export function isLineId(value: string): boolean {
+  return LINE_ID.test(value);
+}
+
+/** A saved link that may be opened, or null (never a constructed one). */
+export function safeLineHref(value: string | null | undefined): string | null {
+  return value && isLineUrl(value) ? value : null;
+}
+
+/**
+ * The quote form's single optional "LINE ID หรือลิงก์ LINE" field: a link if it
+ * starts with http(s), otherwise a LINE ID.
+ */
+export function parseLineContact(raw: string | undefined | null):
+  | { ok: true; lineId?: string; lineUrl?: string }
+  | { ok: false; error: string } {
+  const value = (raw ?? "").trim();
+  if (!value) return { ok: true };
+  // Anything with a scheme or a slash is meant as a link ("line.me/ti/p/…" without https too).
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value) || value.includes("/")) {
+    return isLineUrl(value) ? { ok: true, lineUrl: value } : { ok: false, error: LINE_URL_ERROR };
+  }
+  return isLineId(value) ? { ok: true, lineId: value } : { ok: false, error: LINE_ID_ERROR };
+}

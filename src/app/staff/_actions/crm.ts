@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ActionFailure, check, f, runAction, type ActionResult } from "@/lib/server/crm/action";
+import { LINE_ID_ERROR, LINE_URL_ERROR, isLineId, isLineUrl } from "@/lib/line-contact";
 
 /*
  * CRM server actions. Each one:
@@ -15,6 +16,10 @@ import { ActionFailure, check, f, runAction, type ActionResult } from "@/lib/ser
  * Updates use .select() and expectRows so an RLS-filtered "0 rows changed"
  * is reported instead of silently succeeding.
  */
+
+/** Optional LINE ID, same rule as the database (private.is_line_id). */
+const optionalLineId = () =>
+  z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), z.string().trim().refine(isLineId, LINE_ID_ERROR).optional());
 
 const products = ["car_1", "car_2plus", "car_3plus", "ev", "compulsory", "travel"] as const;
 const taskStatuses = ["open", "in_progress", "done", "cancelled"] as const;
@@ -185,7 +190,7 @@ export async function createCustomer(_prev: ActionResult, formData: FormData): P
   const schema = z.object({
     full_name: f.text(120, "กรอกชื่อลูกค้า"),
     phone: f.phone(),
-    line_id: f.optionalText(60),
+    line_id: optionalLineId(),
     email: z.preprocess((v) => (v === "" ? undefined : v), z.email({ error: "อีเมลไม่ถูกต้อง" }).optional()),
     preferred_channel: z.enum(["phone", "line", "email"]),
   });
@@ -203,7 +208,6 @@ export async function updateCustomer(_prev: ActionResult, formData: FormData): P
   const schema = z.object({
     id: f.uuid(),
     full_name: f.text(120, "กรอกชื่อลูกค้า"),
-    line_id: f.optionalText(60),
     email: z.preprocess((v) => (v === "" ? undefined : v), z.email({ error: "อีเมลไม่ถูกต้อง" }).optional()),
     preferred_channel: z.enum(["phone", "line", "email"]),
     notes: f.optionalText(4000),
@@ -212,13 +216,47 @@ export async function updateCustomer(_prev: ActionResult, formData: FormData): P
     check(
       await staff.db
         .from("customers")
-        .update({ ...input, line_id: input.line_id ?? null, email: input.email ?? null, notes: input.notes ?? null })
+        .update({ ...input, email: input.email ?? null, notes: input.notes ?? null })
         .eq("id", id)
         .select("id"),
       { expectRows: true },
     );
     refresh(`/staff/customers/${id}`);
     return "บันทึกข้อมูลลูกค้าแล้ว";
+  });
+}
+
+/**
+ * LINE contact details on the customer record (shared by all their enquiries).
+ * Typed by staff, so always unverified: the database stamps them
+ * line_contact_source = 'staff_entry'. The verified LINE identity
+ * (customer_line_accounts) is never written here.
+ */
+export async function updateCustomerLine(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const schema = z.object({
+    id: f.uuid(),
+    line_display_name: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      z.string().trim().max(100, "ชื่อใน LINE ยาวเกิน 100 ตัวอักษร").refine((v) => !/[\u0000-\u001f\u007f]/.test(v), "ชื่อใน LINE มีอักขระที่ใช้ไม่ได้").optional(),
+    ),
+    line_id: optionalLineId(),
+    line_url: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      z.string().trim().refine(isLineUrl, LINE_URL_ERROR).optional(),
+    ),
+    back_to: z.string().regex(/^\/staff\/[a-z0-9/-]+$/),
+  });
+  return runAction("agent", schema, formData, async ({ id, back_to, ...input }, staff) => {
+    check(
+      await staff.db
+        .from("customers")
+        .update({ line_display_name: input.line_display_name ?? null, line_id: input.line_id ?? null, line_url: input.line_url ?? null })
+        .eq("id", id)
+        .select("id"),
+      { expectRows: true },
+    );
+    refresh(back_to, `/staff/customers/${id}`);
+    return "บันทึกข้อมูล LINE แล้ว";
   });
 }
 
