@@ -128,14 +128,19 @@ product page, desktop                      product page, mobile
 - **Way in from the public site:** a quiet "เข้าสู่ระบบเจ้าหน้าที่" link on its own row at the
   bottom of the footer, below a hairline. It is plain footer text (not a button) so it
   never competes with the quote path, with a 44px tap target and `rel="nofollow"`.
-- **LINE OA chat link:** the "ข้อมูลติดต่อ LINE" sheet has its own bordered "แชทใน LINE OA"
-  box, apart from the customer's personal LINE details, so a staff tool is never mistaken
-  for the customer's identity. One outline "เปิดแชท LINE OA" button (disabled until a link
-  is saved) and a plain note that staff must be signed in to LINE OA with access to the
-  chat. In the edit form the profile field is now "ลิงก์โปรไฟล์ LINE" and the new
-  "ลิงก์แชท LINE OA" field sits under it with the copy-from-the-address-bar hint; a wrong
-  link shows its error under the field on leaving it or saving, not while pasting.
-  Screenshots: `docs/screenshots/line-oa-chat/`.
+- **ติดต่อผ่าน LINE card:** one compact sheet on the customer and enquiry pages, replacing
+  the tall LINE sheet, its nested LINE OA box and the always-open form. Top to bottom: title
+  with a quiet "แก้ไข"; name and LINE ID as a two-column list; one pill (ยืนยันแล้วผ่าน
+  LINE Login, or ยังไม่ยืนยัน with who typed it and when); one wrapping row of equal outline
+  buttons, "LINE ส่วนตัว" (profile link), "แชท LINE OA" (OA conversation), "คัดลอก ID".
+  A missing link takes its button's place as muted text ("ยังไม่มีลิงก์ส่วนตัว") with a
+  text-style "เพิ่มลิงก์" for agents and admins, which opens the editor on that field; the
+  other link keeps working. The OA sign-in note is one helper line tied to the OA button
+  with `aria-describedby`, shown only when there is a link. The editor opens inside the
+  card under a hairline (name and ID side by side from `md`), with "บันทึก" and "ยกเลิก";
+  saving closes it, announces "บันทึกข้อมูล LINE แล้ว" and the card shows the new values;
+  focus returns to "แก้ไข". The two links are separate fields and never derived from each
+  other. Screenshots: `docs/screenshots/line-contact-card/`.
 
 ## Customer portal and login menu
 

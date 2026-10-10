@@ -255,19 +255,14 @@ export async function updateCustomerLine(_prev: ActionResult, formData: FormData
     back_to: z.string().regex(/^\/staff\/[a-z0-9/-]+$/),
   });
   return runAction("agent", schema, formData, async ({ id, back_to, ...input }, staff) => {
-    check(
-      await staff.db
-        .from("customers")
-        .update({
-          line_display_name: input.line_display_name ?? null,
-          line_id: input.line_id ?? null,
-          line_url: input.line_url ?? null,
-          line_oa_chat_url: input.line_oa_chat_url ?? null,
-        })
-        .eq("id", id)
-        .select("id"),
-      { expectRows: true },
-    );
+    // Write only the fields this form sent: a field that is absent is left as
+    // it is, a field sent empty is cleared. So the profile link and the OA chat
+    // link can never wipe each other, whichever form or version posts.
+    const fields = ["line_display_name", "line_id", "line_url", "line_oa_chat_url"] as const;
+    const update: Partial<Record<(typeof fields)[number], string | null>> = {};
+    for (const key of fields) if (formData.has(key)) update[key] = input[key] ?? null;
+    if (Object.keys(update).length === 0) throw new ActionFailure("ไม่มีข้อมูล LINE ให้บันทึก");
+    check(await staff.db.from("customers").update(update).eq("id", id).select("id"), { expectRows: true });
     refresh(back_to, `/staff/customers/${id}`);
     return "บันทึกข้อมูล LINE แล้ว";
   });
