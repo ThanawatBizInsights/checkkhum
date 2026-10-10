@@ -97,7 +97,7 @@ export default function ContactPage() {
                 title={`แผนที่ ${office.companyName}`}
                 className="size-full border-0"
                 loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
+                referrerPolicy="strict-origin-when-cross-origin"
                 allowFullScreen
               />
             </div>

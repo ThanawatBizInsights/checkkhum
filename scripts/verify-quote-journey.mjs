@@ -292,7 +292,9 @@ console.log("\n# LINE: header button, QR, contact page, footer, floating widget"
   const mapsHref = await maps.getAttribute("href");
   ok(mapsHref === MAP_PIN && (await maps.getAttribute("target")) === "_blank" && (await maps.getAttribute("rel")) === "noopener noreferrer",
     "contact: เปิดใน Google Maps opens the confirmed pin in a new tab");
-  ok((await p.locator("main iframe").count()) === 0, "contact: no embedded map until an embed URL is configured");
+  const mapFrame = p.locator("main iframe");
+  ok((await mapFrame.count()) === 1 && (await mapFrame.getAttribute("src")).startsWith("https://www.google.com/maps/embed?pb=") && (await mapFrame.getAttribute("title")) === "แผนที่ บริษัท แสงพันล้าน จำกัด" && (await mapFrame.getAttribute("loading")) === "lazy",
+    "contact: confirmed pin embedded as a titled, lazy-loaded Google map");
   const qr = p.locator(`main img[src="${QR_IMG}"]`);
   const qrBox = await qr.boundingBox();
   ok(Math.round(qrBox.width) === 180 && Math.round(qrBox.height) === 180 && (await p.locator("main figure", { has: p.locator(`img[src="${QR_IMG}"]`) }).first().innerText()).includes("สแกนเพื่อเพิ่มเพื่อน LINE"),

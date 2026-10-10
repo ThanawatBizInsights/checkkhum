@@ -42,15 +42,16 @@ export const siteConfig = {
   /**
    * Office shown on the contact page. `mapPinUrl` is the Google Maps pin the
    * business confirmed (2026-10); without it the "เปิดใน Google Maps" button
-   * runs an address search. No map is embedded until `mapEmbedUrl` is set.
-   * `mapEmbedUrl` must be a https://www.google.com/maps/embed?pb=… URL
-   * (Google Maps › Share › Embed a map).
+   * runs an address search. `mapEmbedUrl` is the same pin from Google Maps ›
+   * Share › Embed a map; no map is embedded without it.
+   * `mapEmbedUrl` must be a https://www.google.com/maps/embed?pb=… URL.
    */
   office: {
     companyName: "บริษัท แสงพันล้าน จำกัด",
     addressLines: ["89/9-10 หมู่ 3 ต.บางม่วง อ.บางใหญ่", "จ.นนทบุรี 11140"],
     mapPinUrl: "https://maps.app.goo.gl/NNjScXSdXoJZunkV9",
-    mapEmbedUrl: "",
+    mapEmbedUrl:
+      "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3873.9127316725007!2d100.40460907698503!3d13.844276686557324!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30e29100286c17e3%3A0x3ca3701a99e0bfc7!2z4Lia4Lij4Li04Lip4Lix4LiXIOC5geC4quC4h-C4nuC4seC4meC4peC5ieC4suC4mSDguIjguLPguIHguLHguJQ!5e0!3m2!1sen!2sth!4v1791606131166!5m2!1sen!2sth",
   },
 
   /**

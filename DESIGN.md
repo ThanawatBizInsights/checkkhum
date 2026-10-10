@@ -321,8 +321,9 @@ Reference: the supplied screenshots of a bottom-right "แอดไลน์…"
 - **Contact page:** "คุยกับเราผ่าน LINE" card (QR 180px on white with a 16px quiet zone,
   caption "สแกนเพื่อเพิ่มเพื่อน LINE", plus the official button for people already on their
   phone); "ที่ตั้งสำนักงาน" with the address as text and a "เปิดใน Google Maps" button that
-  opens the business's confirmed pin (`office.mapPinUrl`). A map embed appears only once a
-  Google "Embed a map" URL is set in `office.mapEmbedUrl`.
+  opens the business's confirmed pin (`office.mapPinUrl`), and the same pin embedded beside it
+  (`office.mapEmbedUrl`, Google's "Embed a map"; titled, lazy-loaded, 4:3 on phones, 16:11
+  next to the address from 1024px).
 - **Elsewhere:** "ไม่สะดวกกรอกฟอร์ม? คุยกับเราผ่าน LINE" under every quote form; the official
   button in the footer.
 
