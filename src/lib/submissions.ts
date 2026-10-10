@@ -29,6 +29,8 @@ export type EnquiryInput = {
   carBrand?: string;
   carModel?: string;
   carYear?: string;
+  /** Optional LINE ID or shared LINE link (only when preferredChannel is "line"). */
+  lineContact?: string;
   renewalTiming?: string;
   usage?: string;
   repair?: string;
@@ -171,5 +173,6 @@ export function summarizeEnquiry(e: EnquiryInput): string {
   lines.push(`ชื่อ: ${e.name}`);
   lines.push(`เบอร์โทร: ${e.phone}`);
   lines.push(`สะดวกให้ติดต่อทาง: ${e.preferredChannel === "line" ? "LINE" : "โทรศัพท์"}`);
+  if (e.lineContact) lines.push(`LINE: ${e.lineContact}`);
   return lines.join("\n");
 }

@@ -371,6 +371,120 @@ const agentCookies = await agent.ctx.cookies();
   ok(res.status() === 307, "after sign-out the CRM is closed again");
 }
 
+// ===== LINE contact details (customer record, shared by every enquiry) ==========
+{
+  const C2 = "33333333-3333-4333-8333-333333333302";
+  const E2 = "55555555-5555-4555-8555-555555555502";
+  // A second enquiry for the same customer, from the public form, with LINE details.
+  const res = await fetch(`${B}/api/enquiries`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: B, "x-real-ip": "198.51.100.88" },
+    body: JSON.stringify({ type: "quote", planId: "car-1", carBrand: "Honda", carModel: "City", carYear: "2021", name: "ตัวอย่าง รักษ์รถ", phone: "0800000102",
+      preferredChannel: "line", lineContact: "https://lin.ee/Form123", marketingConsent: false, idempotencyKey: crypto.randomUUID(), startedAt: Date.now() - 10000, website: "" }),
+  });
+  const ref = (await res.json()).reference;
+  const E2b = sql(`select id from public.enquiries where reference = '${ref}'`);
+  ok(res.status === 201 && sql(`select coalesce(line_url, '-') from public.customers where id = '${C2}'`) === "-",
+    "public form: LINE link kept on the enquiry, existing customer record untouched");
+
+  // Click the form's submit button and wait for a message containing `expect` (so a stale message never counts).
+  const submitExpect = async (form, expect) => {
+    const button = form.getByRole("button", { name: "บันทึกข้อมูล LINE" });
+    await button.click();
+    // Wait for the round trip (the button reads "กำลังบันทึก" meanwhile), then for the message.
+    await form.getByRole("button", { name: "บันทึกข้อมูล LINE" }).waitFor({ timeout: 15000 });
+    await form.page().waitForTimeout(150);
+    const msg = form.locator(`${ALERT}, [role="status"]`).filter({ hasText: expect });
+    await msg.first().waitFor({ timeout: 15000 }).catch(() => {});
+    return (await form.locator(`${ALERT}, [role="status"]`).last().innerText().catch(() => "")).trim();
+  };
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+  await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: B });
+  await ctx.addCookies(await (await login("agent@checkkhum.example")).ctx.cookies());
+  const p = await ctx.newPage();
+  await p.goto(`${B}/staff/enquiries/${E2}`);
+  const sec = p.locator("[data-line-contact]");
+  ok((await sec.innerText()).includes("ยังไม่มีข้อมูล LINE") && (await sec.getByRole("button", { name: "เปิด LINE" }).isDisabled()) && (await sec.getByRole("button", { name: "คัดลอก LINE ID" }).first().isDisabled()),
+    "empty: ยังไม่มีข้อมูล LINE, copy and open disabled");
+
+  // Invalid link: refused with a message, nothing saved.
+  for (const bad of ["javascript:alert(1)", "http://line.me/ti/p/~x", "https://line.me.evil.example/ti/p/x", "https://evil.example/x"]) {
+    await p.fill("#line-url", bad);
+    await p.fill("#line-display-name", "ยังพิมพ์อยู่");
+    const msg = await submitExpect(sec.locator("form"), "https://line.me");
+    ok(msg.includes("https://line.me") && sql(`select coalesce(line_url, '-') from public.customers where id = '${C2}'`) === "-", `invalid link refused: ${bad}`);
+    ok((await p.inputValue("#line-url")) === bad && (await p.inputValue("#line-display-name")) === "ยังพิมพ์อยู่", `typed values kept after the error (${bad})`);
+  }
+  await p.fill("#line-url", "https://line.me/ti/p/~ok");
+  await p.fill("#line-id", "bad id with spaces");
+  const idMsg = await submitExpect(sec.locator("form"), "LINE ID ใช้ได้");
+  ok(idMsg.includes("LINE ID") && sql(`select coalesce(line_id, '-') from public.customers where id = '${C2}'`) === "-", "invalid LINE ID refused");
+
+  // Save valid details on enquiry 1's page.
+  await p.fill("#line-display-name", "รักษ์รถ ใจเย็น");
+  await p.fill("#line-id", "raksrot.demo");
+  await p.fill("#line-url", "https://line.me/ti/p/~raksrot.demo");
+  const saved = await submitExpect(sec.locator("form"), "บันทึกข้อมูล LINE แล้ว");
+  ok(saved.includes("บันทึกข้อมูล LINE แล้ว"), "agent saves LINE details");
+  ok(sql(`select line_display_name || '|' || line_id || '|' || line_url || '|' || line_contact_source from public.customers where id = '${C2}'`)
+    === "รักษ์รถ ใจเย็น|raksrot.demo|https://line.me/ti/p/~raksrot.demo|staff_entry", "stored on the customer as an unverified staff entry");
+  ok(sql(`select count(*) from public.audit_logs where table_name = 'customers' and record_id = '${C2}' and action = 'update' and new_values->>'line_id' = 'raksrot.demo'`) === "1",
+    "edit recorded in the audit log");
+
+  // Persistence across enquiries: the other enquiry and the customer page show it too.
+  for (const path of [`/staff/enquiries/${E2b}`, `/staff/customers/${C2}`]) {
+    await p.goto(`${B}${path}`);
+    const t = await p.locator("[data-line-contact]").innerText();
+    ok(t.includes("raksrot.demo") && t.includes("รักษ์รถ ใจเย็น") && t.includes("ยังไม่ยืนยัน"), `${path.split("/")[2]} page shows the same customer LINE details, marked unverified`);
+  }
+  await p.goto(`${B}/staff/enquiries/${E2b}`);
+  const fromEnquiry = p.locator("[data-enquiry-line]");
+  ok((await fromEnquiry.innerText()).includes("https://lin.ee/Form123"), "enquiry page shows what the visitor sent with that enquiry, separately");
+  ok((await fromEnquiry.getByRole("link", { name: /เปิด LINE/ }).getAttribute("href")) === "https://lin.ee/Form123", "enquiry-supplied link can be opened as sent");
+
+  // Copy and open.
+  const mainSec = p.locator("[data-line-contact]");
+  await mainSec.getByRole("button", { name: "คัดลอก LINE ID" }).first().click();
+  ok((await p.evaluate(() => navigator.clipboard.readText())) === "raksrot.demo" && (await mainSec.locator("[data-copy-status]").first().innerText()).includes("คัดลอก LINE ID แล้ว"),
+    "คัดลอก LINE ID copies the saved ID");
+  const open = mainSec.locator("[data-line-open]").first();
+  ok((await open.getAttribute("href")) === "https://line.me/ti/p/~raksrot.demo" && (await open.getAttribute("target")) === "_blank" && (await open.getAttribute("rel")) === "noopener noreferrer",
+    "เปิด LINE opens the saved link in a new tab, noopener noreferrer");
+  const html = await (await ctx.request.get(`${B}/staff/enquiries/${E2b}`)).text();
+  ok(!/line\.me\/R\/ti\/p\/|line:\/\/|0800000102[^"]*line/i.test(html), "no LINE link is built from a phone number or ID");
+
+  // Verified LINE Login account is shown as verified (and only that one).
+  const userA = sql("select a.user_id from public.customer_accounts a where a.customer_id = '33333333-3333-4333-8333-333333333301'");
+  sql(`insert into public.customer_line_accounts (user_id, line_user_id, display_name) values ('${userA}', 'U${"a".repeat(32)}', 'สมมติ LINE จริง')`);
+  await p.goto(`${B}/staff/enquiries/55555555-5555-4555-8555-555555555501`);
+  ok((await p.locator("[data-line-verified]").innerText()).includes("สมมติ LINE จริง"), "verified LINE Login account shown as verified");
+  await p.goto(`${B}/staff/enquiries/${E2}`);
+  ok((await p.locator("[data-line-verified]").count()) === 0, "typed details are never shown as verified");
+
+  // Viewer: sees the details, cannot edit; replayed action refused.
+  // (Section 7 above gave the viewer a temporary password.)
+  const v = await login("viewer@checkkhum.example", "viewer-temp-pass-2026");
+  await v.p.goto(`${B}/staff/customers/${C2}`);
+  ok((await v.p.locator("[data-line-contact]").innerText()).includes("raksrot.demo") && (await v.p.locator("#line-id").count()) === 0, "viewer sees LINE details without an edit form");
+  await v.ctx.close();
+  const viewerCookies2 = await (await login("viewer@checkkhum.example", "viewer-temp-pass-2026")).ctx.cookies();
+  await p.goto(`${B}/staff/customers/${C2}`);
+  await p.fill("#line-id", "viewer.hijack");
+  await ctx.clearCookies();
+  await ctx.addCookies(viewerCookies2);
+  const refused = await submitExpect(p.locator("[data-line-contact] form"), "ดูข้อมูลได้อย่างเดียว");
+  ok(refused.includes("ดูข้อมูลได้อย่างเดียว") && sql(`select line_id from public.customers where id = '${C2}'`) === "raksrot.demo", `viewer session: LINE edit refused ("${refused}")`);
+
+  // Signed out and public API: nothing exposed.
+  const anon = await browser.newContext();
+  const r = await anon.request.get(`${B}/staff/customers/${C2}`, { maxRedirects: 0 });
+  ok(r.status() === 307, "signed out: customer page with LINE details redirects to login");
+  await anon.close();
+  const pub = await fetch(`${status.API_URL}/rest/v1/customers?select=line_id,line_url`, { headers: { apikey: status.PUBLISHABLE_KEY } });
+  ok(pub.status >= 400, `publishable key cannot read customer LINE details (${pub.status})`);
+  await ctx.close();
+}
+
 ok(pageErrors.length === 0, `no page errors ${JSON.stringify(pageErrors)}`);
 await browser.close();
 console.log(failures ? `\n${failures} check(s) FAILED` : "\nAll checks passed");

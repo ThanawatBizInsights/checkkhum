@@ -20,7 +20,8 @@ import { Button } from "./button";
 import { DemoNotice, IntakeUnavailableNotice } from "./demo-notice";
 import { EnquiryResult } from "./enquiry-result";
 import { ChipGroup, SelectField, TextAreaField, TextField } from "./form-fields";
-import { LineButton, LineTextLink } from "./line-links";
+import { LineButton, LineTextLink, lineLinkProps } from "./line-links";
+import { parseLineContact } from "@/lib/line-contact";
 import { useEnquirySubmission } from "./use-enquiry-submission";
 
 export type SubmissionMode = "database" | "demo" | "unavailable";
@@ -40,6 +41,7 @@ const emptyFields = {
   travellers: "1",
   name: "",
   phone: "",
+  lineContact: "",
   message: "",
 };
 type Fields = typeof emptyFields;
@@ -70,7 +72,7 @@ function missingFields(planId: PlanId, f: Fields): Record<string, string> {
   return e;
 }
 
-const fieldOrder = ["vehicleType", "carBrand", "carModel", "carYear", "destination", "tripStart", "tripDays", "travellers", "name", "phone"];
+const fieldOrder = ["vehicleType", "carBrand", "carModel", "carYear", "destination", "tripStart", "tripDays", "travellers", "name", "phone", "lineContact"];
 
 /**
  * The quotation form, used on the homepage, product pages and /quote. No
@@ -119,6 +121,10 @@ export function QuoteFormClient({
     e.preventDefault();
     if (mode === "unavailable") return;
     const next = missingFields(planId, fields);
+    if (channel === "line") {
+      const line = parseLineContact(fields.lineContact);
+      if (!line.ok) next.lineContact = line.error;
+    }
     setErrors(next);
     if (Object.keys(next).length) return focusFirst(next);
 
@@ -130,6 +136,7 @@ export function QuoteFormClient({
       name: fields.name.trim(),
       phone: formatThaiPhone(normalizeThaiMobile(fields.phone)),
       preferredChannel: channel,
+      lineContact: channel === "line" ? fields.lineContact.trim() || undefined : undefined,
       renewalTiming: isTravel ? undefined : t(fields.renewalTiming),
       ...(isTravel
         ? { destination: t(fields.destination), tripStart: t(fields.tripStart), tripDays: t(fields.tripDays), travellers: t(fields.travellers) }
@@ -309,6 +316,35 @@ export function QuoteFormClient({
                 { value: "line", label: "LINE" },
               ]}
             />
+
+            {channel === "line" && (
+              <div>
+                <TextField
+                  id={id("lineContact")}
+                  label="LINE ID หรือลิงก์ LINE"
+                  optional
+                  placeholder="เช่น somchai.k หรือ https://line.me/ti/p/…"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  maxLength={300}
+                  value={fields.lineContact}
+                  onChange={set("lineContact")}
+                  error={errors.lineContact}
+                  hint="ให้ทีมงานทักกลับทาง LINE ได้ ไม่ต้องสมัครสมาชิก"
+                />
+                {lineLinkProps && (
+                  <p className="mt-1.5 text-[0.9375rem] text-ink-soft">
+                    หรือ{" "}
+                    <a {...lineLinkProps} data-line-link className="font-semibold text-teal-ink underline underline-offset-4">
+                      เพิ่มเพื่อน LINE เช็กคุ้ม
+                      <span className="sr-only"> (เปิดในแท็บใหม่)</span>
+                    </a>{" "}
+                    แล้วทักมาพร้อมเลขที่คำขอ
+                  </p>
+                )}
+              </div>
+            )}
 
             {showNotes && (
               <TextAreaField

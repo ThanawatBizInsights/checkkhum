@@ -396,6 +396,35 @@ console.log("\n# LINE: header button, QR, contact page, footer, floating widget"
   }
 }
 
+console.log("\n# Quote form: optional LINE ID or link when LINE is chosen");
+{
+  const { ctx, p } = await phonePage();
+  await p.goto(`${B}/quote?plan=car-1`);
+  const form = p.locator("main form").first();
+  ok((await form.getByLabel(/LINE ID หรือลิงก์ LINE/).count()) === 0, "field hidden while โทรศัพท์ is chosen");
+  await form.getByRole("radio", { name: "LINE", exact: true }).check();
+  const field = form.getByLabel(/LINE ID หรือลิงก์ LINE/);
+  ok(await field.isVisible(), "choosing LINE shows the optional LINE ID / link field");
+  const oa = form.getByRole("link", { name: /เพิ่มเพื่อน LINE เช็กคุ้ม/ });
+  ok((await oa.getAttribute("href")) === LINE_URL && (await oa.getAttribute("target")) === "_blank", "explains the OA option with the configured link");
+  await form.getByLabel("ยี่ห้อรถ").fill("Mazda");
+  await form.getByLabel("รุ่นรถ").fill("2");
+  await form.getByLabel("ปีรถ (พ.ศ.)").selectOption("2020");
+  await form.getByLabel("ชื่อที่ให้เราเรียก").fill(`ทดสอบ ไลน์ ${runId}`);
+  await form.getByLabel("เบอร์โทรศัพท์").fill(`08100${runId}6`);
+  await field.fill("javascript:alert(1)");
+  await sleep(3200);
+  await form.getByRole("button", { name: "ขอใบเสนอราคา" }).click();
+  await p.waitForTimeout(400);
+  ok((await field.getAttribute("aria-invalid")) === "true" && (await p.getByTestId("enquiry-confirmation").count()) === 0, "unsafe link: field error, nothing sent");
+  await field.fill("https://lin.ee/Visitor1");
+  await form.getByRole("button", { name: "ขอใบเสนอราคา" }).click();
+  await p.getByTestId("enquiry-reference").waitFor({ timeout: 15000 });
+  const ref = (await p.getByTestId("enquiry-reference").innerText()).trim();
+  ok(sql(`select contact_line_url || '|' || preferred_channel from public.enquiries where reference = '${ref}'`) === "https://lin.ee/Visitor1|line", "LINE link saved with the enquiry (no account needed)");
+  await ctx.close();
+}
+
 console.log("\n# Staff see the enquiries; the public can't");
 {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });

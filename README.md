@@ -116,7 +116,7 @@ Then:
 
 ```bash
 npm run build && npm start
-BASE_URL=http://localhost:3000 npm run verify:enquiries   # 43 end-to-end checks (local only)
+BASE_URL=http://localhost:3000 npm run verify:enquiries   # 52 end-to-end checks (local only)
 ```
 
 ### Configuring environment variables
@@ -262,12 +262,12 @@ Local auth emails (sign-up verification, invitations, resets) arrive in Mailpit 
 ```bash
 npm run db:test                                   # 240 database tests (5 suites)
 npx supabase db reset && npm run build && npm start
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:crm      # 78 end-to-end checks
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:crm      # 106 end-to-end checks (incl. customer LINE details)
 npx supabase db reset
 PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:portal   # 160 customer portal + registration checks
 npx supabase db reset   # app built and started with the test LINE settings in scripts/verify-line.mjs
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:line     # 62 LINE Login checks
-PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey  # 270 quote journey checks (UNCONFIGURED_URL=… adds the no-settings case)
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:line     # 63 LINE Login checks
+PLAYWRIGHT_MODULE=… BASE_URL=http://localhost:3000 npm run verify:journey  # 275 quote journey checks (UNCONFIGURED_URL=… adds the no-settings case)
 ```
 
 Full launch audit (mobile layouts at 360/390px, Thai fonts and text size, every internal

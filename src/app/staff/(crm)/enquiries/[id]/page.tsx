@@ -11,6 +11,7 @@ import {
   setQuotationStatus,
 } from "@/app/staff/_actions/crm";
 import { ActionForm } from "@/components/staff/action-form";
+import { LineContactSheet } from "@/components/staff/line-contact-sheet";
 import { ActivityList, ActivityForm, TaskForm } from "@/components/staff/customer-bits";
 import { TaskList } from "@/components/staff/task-list";
 import { Empty, Field, KeyValue, PageTitle, Pill, PipelineStrip, Select, Sheet, StatusBadge } from "@/components/staff/ui";
@@ -46,7 +47,7 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
 
   const { data: e } = await staff.db
     .from("enquiries")
-    .select("*, customers(id, full_name, phone, line_id, preferred_channel), vehicles(id, description, make, model, model_year, registration_plate, is_ev), staff_users(full_name)")
+    .select("*, customers(id, full_name, phone, line_id, line_display_name, line_url, line_contact_source, line_contact_updated_at, preferred_channel), vehicles(id, description, make, model, model_year, registration_plate, is_ev), staff_users(full_name)")
     .eq("id", id)
     .maybeSingle();
   if (!e) notFound();
@@ -144,17 +145,27 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
             />
           </Sheet>
 
-          <Sheet title="ผู้รับผิดชอบ" id="assign-title">
-            <p className="mb-3">{e.staff_users?.full_name ?? <span className="text-ink-soft">ยังไม่มีผู้รับผิดชอบ</span>}</p>
-            {staff.canWrite && (
-              <ActionForm action={assignEnquiry} submitLabel="บันทึกผู้รับผิดชอบ" variant="outline">
-                <input type="hidden" name="id" value={e.id} />
-                <Field label="มอบหมายให้" htmlFor="assigned_to">
-                  <Select id="assigned_to" name="assigned_to" options={staffOpts} defaultValue={e.assigned_to ?? ""} placeholder="ไม่ระบุ" />
-                </Field>
-              </ActionForm>
+          <div className="grid content-start gap-5">
+            <Sheet title="ผู้รับผิดชอบ" id="assign-title">
+              <p className="mb-3">{e.staff_users?.full_name ?? <span className="text-ink-soft">ยังไม่มีผู้รับผิดชอบ</span>}</p>
+              {staff.canWrite && (
+                <ActionForm action={assignEnquiry} submitLabel="บันทึกผู้รับผิดชอบ" variant="outline">
+                  <input type="hidden" name="id" value={e.id} />
+                  <Field label="มอบหมายให้" htmlFor="assigned_to">
+                    <Select id="assigned_to" name="assigned_to" options={staffOpts} defaultValue={e.assigned_to ?? ""} placeholder="ไม่ระบุ" />
+                  </Field>
+                </ActionForm>
+              )}
+            </Sheet>
+            {e.customers && (
+              <LineContactSheet
+                staff={staff}
+                customer={e.customers}
+                enquiryLine={{ lineId: e.contact_line_id, lineUrl: e.contact_line_url }}
+                backTo={`/staff/enquiries/${e.id}`}
+              />
             )}
-          </Sheet>
+          </div>
         </div>
 
         <Sheet title={`ใบเสนอราคา (${quotes.data?.length ?? 0})`} id="quotes-title">

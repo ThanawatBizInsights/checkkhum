@@ -5,6 +5,7 @@ import { addActivity, addPolicy, addVehicle, createEnquiry, createTask, updateCu
 import { ActionForm } from "@/components/staff/action-form";
 import { ActivityForm, ActivityList, TaskForm } from "@/components/staff/customer-bits";
 import { CustomerPortalSheet } from "@/components/staff/portal-sheets";
+import { LineContactSheet } from "@/components/staff/line-contact-sheet";
 import { TaskList } from "@/components/staff/task-list";
 import { Empty, Field, PageTitle, Pill, Select, Sheet, StatusBadge } from "@/components/staff/ui";
 import {
@@ -237,9 +238,6 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                   <Field label="ชื่อ-นามสกุล" htmlFor="c-name">
                     <input id="c-name" name="full_name" required defaultValue={c.full_name} maxLength={120} className="field-input" />
                   </Field>
-                  <Field label="LINE ID" htmlFor="c-line">
-                    <input id="c-line" name="line_id" defaultValue={c.line_id ?? ""} maxLength={60} className="field-input" />
-                  </Field>
                   <Field label="อีเมล" htmlFor="c-email">
                     <input id="c-email" name="email" type="email" defaultValue={c.email ?? ""} className="field-input" />
                   </Field>
@@ -255,6 +253,8 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
               )}
               <p className="mt-3 text-[0.9375rem] text-ink-soft">เบอร์โทรเป็นตัวระบุลูกค้า เปลี่ยนได้โดยผู้ดูแลระบบในฐานข้อมูล</p>
             </Sheet>
+
+            <LineContactSheet staff={staff} customer={c} backTo={`/staff/customers/${c.id}`} />
 
             <CustomerPortalSheet staff={staff} customerId={c.id} email={c.email} />
 

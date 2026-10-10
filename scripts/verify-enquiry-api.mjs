@@ -201,6 +201,27 @@ check(!sql(`select string_agg(bucket_key, ',') from private.rate_limit_buckets`)
     === `travel|ญี่ปุ่น|7|2|{"trip_start": "${start}"}|true`, `travel: destination, dates and travellers stored; car fields ignored`);
 }
 
+// --- Optional LINE details (only kept when the visitor chose LINE) -------------------
+{
+  const r = await post(quote({ preferredChannel: "line", lineContact: "@line.visitor" }));
+  check(r.status === 201 && sql(`select coalesce(contact_line_id, '-') || '|' || coalesce(contact_line_url, '-') from public.enquiries where reference = '${r.json?.reference}'`) === "@line.visitor|-",
+    `LINE ID stored with the enquiry`);
+  check(sql(`select c.line_id || '|' || c.line_contact_source from public.customers c join public.enquiries e on e.customer_id = c.id where e.reference = '${r.json?.reference}'`) === "@line.visitor|web_form",
+    `new customer starts with it, marked web_form (unverified)`);
+}
+{
+  const r = await post(quote({ preferredChannel: "line", lineContact: "https://line.me/ti/p/~visitor" }));
+  check(r.status === 201 && sql(`select contact_line_url from public.enquiries where reference = '${r.json?.reference}'`) === "https://line.me/ti/p/~visitor", `shared LINE link stored with the enquiry`);
+}
+for (const bad of ["javascript:alert(1)", "http://line.me/ti/p/~x", "https://line.me.evil.example/x", "line.me/ti/p/~x", "id with spaces"]) {
+  const r = await post(quote({ preferredChannel: "line", lineContact: bad }));
+  check(r.status === 400 && r.json?.fieldErrors?.lineContact, `invalid LINE detail refused: ${bad}`);
+}
+{
+  const r = await post(quote({ preferredChannel: "phone", lineContact: "@ignored.when.phone" }));
+  check(r.status === 201 && sql(`select coalesce(contact_line_id, '-') from public.enquiries where reference = '${r.json?.reference}'`) === "-", `LINE detail ignored when the visitor chose phone`);
+}
+
 // --- Duplicate handling ---------------------------------------------------------
 {
   const r = await post(good);

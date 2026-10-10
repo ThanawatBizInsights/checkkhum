@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { parseLineContact } from "@/lib/line-contact";
 
 /** Website plan ids → database `insurance_product` enum. */
 export const planToProduct = {
@@ -83,9 +84,15 @@ const quoteSchema = z
     tripDays: optionalInt(1, 365, "จำนวนวันต้องอยู่ระหว่าง 1–365"),
     travellers: optionalInt(1, 20, "จำนวนผู้เดินทางต้องอยู่ระหว่าง 1–20"),
     message: optionalText(1000, "รายละเอียด"),
+    /** Optional LINE ID or shared LINE link, only used when preferredChannel is "line". */
+    lineContact: optionalText(300, "LINE ID หรือลิงก์ LINE"),
     ...base,
   })
   .superRefine((v, ctx) => {
+    if (v.preferredChannel === "line") {
+      const line = parseLineContact(v.lineContact);
+      if (!line.ok) ctx.addIssue({ code: "custom", path: ["lineContact"], message: line.error });
+    }
     const need = (field: string, message: string, present: unknown) => {
       if (present === undefined || present === null || present === "") ctx.addIssue({ code: "custom", path: [field], message });
     };
@@ -120,7 +127,7 @@ export type EnquiryRequest = z.infer<typeof enquirySchema>;
 /** Fields shown in the form; anything else is reported as a general error. */
 export const formFields = [
   "name", "phone", "message", "carBrand", "carModel", "carYear", "renewalTiming", "usage", "repair", "evCharger",
-  "vehicleType", "destination", "tripStart", "tripDays", "travellers", "planId", "preferredChannel",
+  "vehicleType", "destination", "tripStart", "tripDays", "travellers", "planId", "preferredChannel", "lineContact",
 ] as const;
 
 export function fieldErrors(error: z.ZodError): Record<string, string> {

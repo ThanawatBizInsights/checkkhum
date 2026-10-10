@@ -66,6 +66,14 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
   or account ID as text. There is one floating LINE control, `LineFloatingWidget`, on public
   pages only; it must keep stepping aside for any form in `main`, the footer and focused
   fields, and stay closed for the session once dismissed.
+- **Customer LINE contact details:** typed details live on the customer
+  (`line_display_name`, `line_id`, `line_url`) and are always unverified
+  (`line_contact_source`); what a visitor typed stays on the enquiry (`contact_line_*`, read-only);
+  the only verified identity is `customer_line_accounts`. Validate with `src/lib/line-contact.ts`
+  (mirrors `private.is_line_id/is_line_url`). Open only saved links; never build a LINE URL from a
+  phone, name, ID or user id, and never match customers by them. The public form never changes an
+  existing customer's LINE details. Extend `supabase/tests/line_contact.test.sql` and
+  `scripts/verify-crm.mjs` with every change.
 - **Office and map:** office details live in `siteConfig.office`. Only embed a map or link a
   pin the business has confirmed (`mapPinUrl`, `mapEmbedUrl`); otherwise use the address search.
 - **Secrets:** `SUPABASE_SECRET_KEY`, `ENQUIRY_HASH_SALT` and `TURNSTILE_SECRET_KEY` are
