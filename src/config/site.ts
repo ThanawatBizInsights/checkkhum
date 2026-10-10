@@ -9,6 +9,8 @@
 export const siteConfig = {
   name: "เช็กคุ้ม",
   nameLatin: "CheckKhum",
+  /** Canonical public origin (no trailing slash). Used by sitemap.xml and robots.txt. */
+  siteUrl: "https://www.checkkhum.com",
   tagline: "Car & Travel Insurance",
   description:
     "เช็กคุ้ม ช่วยเปรียบเทียบแผนประกันรถยนต์ ชั้น 1, 2+, 3+, ประกันรถ EV, พ.ร.บ. และประกันเดินทาง ก่อนตัดสินใจ",

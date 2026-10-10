@@ -196,6 +196,59 @@ for (const width of [360, 390]) {
   await admin.ctx.close();
 }
 
+// ===== Sitemap and robots.txt =====================================================
+{
+  const CANON = "https://www.checkkhum.com";
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  const sm = await ctx.request.get(`${B}/sitemap.xml`, { maxRedirects: 0 });
+  const xml = await sm.text();
+  ok(sm.status() === 200 && /xml/.test(sm.headers()["content-type"] ?? "") && xml.startsWith("<?xml") && !/<html/i.test(xml),
+    `/sitemap.xml: 200, ${sm.headers()["content-type"]}, XML not HTML`);
+  const parsed = await page.evaluate((x) => {
+    const d = new DOMParser().parseFromString(x, "application/xml");
+    return {
+      error: d.getElementsByTagName("parsererror").length > 0,
+      ns: d.documentElement.namespaceURI,
+      root: d.documentElement.localName,
+      locs: [...d.getElementsByTagName("loc")].map((l) => l.textContent),
+      lastmod: d.getElementsByTagName("lastmod").length,
+    };
+  }, xml);
+  ok(!parsed.error && parsed.root === "urlset" && parsed.ns === "http://www.sitemaps.org/schemas/sitemap/0.9", "sitemap parses as a sitemaps.org <urlset>");
+  ok(parsed.locs.length > 0 && parsed.locs.every((l) => l.startsWith(`${CANON}/`)) && new Set(parsed.locs).size === parsed.locs.length,
+    `${parsed.locs.length} unique URLs, all on ${CANON}`);
+  ok(parsed.lastmod === 0, "no invented <lastmod> dates");
+
+  // Every listed page is live and indexable; every indexable public page is listed; nothing private is listed.
+  const listed = new Set(parsed.locs.map((l) => new URL(l).pathname));
+  const problems = [];
+  for (const path of listed) {
+    const r = await ctx.request.get(`${B}${path}`, { maxRedirects: 0 });
+    const html = await r.text();
+    if (r.status() !== 200) problems.push(`${path} → ${r.status()}`);
+    if (/<meta[^>]+name="robots"[^>]+noindex/i.test(html)) problems.push(`${path} is noindex`);
+  }
+  ok(problems.length === 0, `every sitemap URL answers 200 without noindex${problems.length ? `: ${problems.join(", ")}` : ""}`);
+  const missing = [];
+  for (const path of PUBLIC) {
+    const r = await ctx.request.get(`${B}${path}`, { maxRedirects: 0 });
+    const indexable = r.status() === 200 && !/<meta[^>]+name="robots"[^>]+noindex/i.test(await r.text());
+    if (indexable && !listed.has(path)) missing.push(path);
+  }
+  ok(missing.length === 0, `every indexable public page is in the sitemap${missing.length ? ` (missing: ${missing.join(", ")})` : ""}`);
+  ok(![...listed].some((p) => /^\/(staff|api|customer|line|privacy)(\/|$)/.test(p)), "no CRM, API, customer, LINE sign-in or draft pages listed");
+
+  const rb = await ctx.request.get(`${B}/robots.txt`, { maxRedirects: 0 });
+  const txt = await rb.text();
+  ok(rb.status() === 200 && /text\/plain/.test(rb.headers()["content-type"] ?? ""), `/robots.txt: 200, ${rb.headers()["content-type"]}`);
+  ok(txt.includes(`Sitemap: ${CANON}/sitemap.xml`) && /User-Agent: \*/i.test(txt) && /Allow: \//.test(txt), "robots.txt allows public pages and points to the sitemap");
+  ok(["/staff", "/api/", "/customer", "/line"].every((d) => txt.includes(`Disallow: ${d}`)) && !txt.includes("Disallow: /privacy"), "robots.txt keeps crawlers out of private areas (privacy stays crawlable for its noindex)");
+  const staff = await ctx.request.get(`${B}/staff`, { maxRedirects: 0 });
+  ok(staff.status() === 307 && (staff.headers().location ?? "").includes("/staff/login"), "the CRM still requires sign-in");
+  await ctx.close();
+}
+
 // ===== 4. Anonymous visitors cannot retrieve customer information =================
 {
   const anonHeaders = { apikey: status.PUBLISHABLE_KEY, "content-type": "application/json" };

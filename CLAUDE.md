@@ -50,6 +50,7 @@ read the bundled docs in `node_modules/next/dist/docs/` rather than relying on m
 | `src/content/quote-options.ts`, `src/content/journey.ts` | Quote form choices (brands are suggestions only) and homepage/quote journey copy, FAQs |
 | `src/app/(site)/line/`, `src/components/line/`, `src/app/api/line/session/route.ts`, `src/lib/server/line.ts` | LINE Login / LIFF: entry page, client LIFF start-up, server token verification and session |
 | `supabase/templates/` | Thai auth email templates (sign-up confirmation, invite, recovery) using `token_hash` links |
+| `src/app/sitemap.ts`, `src/app/robots.ts`, `src/content/indexable-pages.ts` | `/sitemap.xml` and `/robots.txt` on `siteConfig.siteUrl`; add every new indexable public page to `indexablePaths` (`npm run audit` checks it) |
 | `DESIGN.md` | Design tokens, layout, rationale |
 
 ## Rules
