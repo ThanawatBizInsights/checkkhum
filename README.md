@@ -57,6 +57,17 @@ npm start
 | `GET /api/account` | Signed-in state (`signed_out`, `customer` or `staff` only); kept for when the portal returns to the navigation |
 | `POST /api/line/session` | Verifies a LINE ID token with LINE, then signs the customer in (or links LINE to the current account) |
 
+## Sitemap and robots.txt
+
+`/sitemap.xml` (`src/app/sitemap.ts`) lists the indexable public pages in
+`src/content/indexable-pages.ts` on `https://www.checkkhum.com` (`siteConfig.siteUrl`):
+home, the four insurance pages, `/quote` and `/contact`. The draft privacy notice, the
+customer portal, `/line`, the CRM and the API are left out, and there is no `<lastmod>`
+because the pages have no reliable modification date. `/robots.txt` (`src/app/robots.ts`)
+allows public pages, keeps crawlers out of `/staff`, `/api/`, `/customer` and `/line`, and
+points to the sitemap. Neither path goes through `src/proxy.ts`. When you add an indexable
+page, add it to `indexablePaths`; `npm run audit` fails if one is missing.
+
 ## Contact details
 
 All contact details are in **`src/config/site.ts`**: phone, LINE Official Account link,
