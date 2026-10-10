@@ -255,6 +255,7 @@ console.log("\n# LINE: header button, QR, contact page, footer, floating widget"
 {
   const ADD_IMG = "https://scdn.line-apps.com/n/line_add_friends/btn/th.png";
   const QR_IMG = "https://qr-official.line.me/gs/M_103yhsnv_GW.png?oat_content=qr";
+  const MAP_PIN = "https://maps.app.goo.gl/NNjScXSdXoJZunkV9";
   const isLineLink = async (a) => (await a.getAttribute("href")) === LINE_URL && (await a.getAttribute("target")) === "_blank" && (await a.getAttribute("rel")) === "noopener noreferrer";
 
   // Pages: every LINE link points at the new OA link, the old one is gone, no raw URL shown.
@@ -289,9 +290,9 @@ console.log("\n# LINE: header button, QR, contact page, footer, floating widget"
   ok(address.includes("บริษัท แสงพันล้าน จำกัด") && address.includes("89/9-10 หมู่ 3 ต.บางม่วง อ.บางใหญ่") && address.includes("จ.นนทบุรี 11140"), "contact: office name and address as text");
   const maps = p.getByRole("link", { name: /เปิดใน Google Maps/ });
   const mapsHref = await maps.getAttribute("href");
-  ok(mapsHref.startsWith("https://www.google.com/maps/search/?api=1&query=") && decodeURIComponent(mapsHref).includes("89/9-10 หมู่ 3 ต.บางม่วง อ.บางใหญ่ จ.นนทบุรี 11140") && (await maps.getAttribute("target")) === "_blank",
-    "contact: เปิดใน Google Maps runs an address search in a new tab (no unconfirmed pin)");
-  ok((await p.locator("main iframe").count()) === 0, "contact: no embedded map until the pin is confirmed");
+  ok(mapsHref === MAP_PIN && (await maps.getAttribute("target")) === "_blank" && (await maps.getAttribute("rel")) === "noopener noreferrer",
+    "contact: เปิดใน Google Maps opens the confirmed pin in a new tab");
+  ok((await p.locator("main iframe").count()) === 0, "contact: no embedded map until an embed URL is configured");
   const qr = p.locator(`main img[src="${QR_IMG}"]`);
   const qrBox = await qr.boundingBox();
   ok(Math.round(qrBox.width) === 180 && Math.round(qrBox.height) === 180 && (await p.locator("main figure", { has: p.locator(`img[src="${QR_IMG}"]`) }).first().innerText()).includes("สแกนเพื่อเพิ่มเพื่อน LINE"),

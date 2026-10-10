@@ -40,16 +40,16 @@ export const siteConfig = {
   },
 
   /**
-   * Office shown on the contact page. `mapPinUrl` / `mapEmbedUrl` stay empty
-   * until the business confirms the exact Google Maps pin: until then the
-   * "เปิดใน Google Maps" button runs an address search and no map is embedded.
+   * Office shown on the contact page. `mapPinUrl` is the Google Maps pin the
+   * business confirmed (2026-10); without it the "เปิดใน Google Maps" button
+   * runs an address search. No map is embedded until `mapEmbedUrl` is set.
    * `mapEmbedUrl` must be a https://www.google.com/maps/embed?pb=… URL
    * (Google Maps › Share › Embed a map).
    */
   office: {
     companyName: "บริษัท แสงพันล้าน จำกัด",
     addressLines: ["89/9-10 หมู่ 3 ต.บางม่วง อ.บางใหญ่", "จ.นนทบุรี 11140"],
-    mapPinUrl: "",
+    mapPinUrl: "https://maps.app.goo.gl/NNjScXSdXoJZunkV9",
     mapEmbedUrl: "",
   },
 
