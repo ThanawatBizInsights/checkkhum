@@ -9,7 +9,7 @@ import { LINE_OA_CHAT_URL_ERROR, isLineOaChatUrl } from "@/lib/line-contact";
  * wrong. Empty is fine: saving an empty field clears the link. The error shows
  * after leaving the field or trying to save, not while staff are still pasting.
  */
-export function LineOaChatInput({ defaultValue }: { defaultValue: string | null }) {
+export function LineOaChatInput({ defaultValue, autoFocus = false }: { defaultValue: string | null; autoFocus?: boolean }) {
   const hintId = useId();
   const errorId = useId();
   const [error, setError] = useState("");
@@ -37,6 +37,7 @@ export function LineOaChatInput({ defaultValue }: { defaultValue: string | null 
         autoComplete="off"
         spellCheck={false}
         placeholder="https://chat.line.biz/…"
+        autoFocus={autoFocus}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${errorId} ${hintId}` : hintId}
         onChange={(e) => validate(e.currentTarget, false)}

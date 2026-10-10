@@ -338,8 +338,11 @@ backs rate limiting and holds only salted hashes.
 Staff only (RLS on `customers` / `enquiries`); `anon` has no access. Every edit is in
 `audit_logs`. Nothing links or matches customers by LINE name, ID, link or phone, and no
 chat/profile URL is ever built from them: "เปิด LINE" opens only a saved link that passes
-`is_line_url`, and "เปิดแชท LINE OA" only a saved link that passes `is_line_oa_chat_url`
-(staff need a LINE OA sign-in with access to that chat).
+`is_line_url` ("LINE ส่วนตัว"), and "แชท LINE OA" only a saved link that passes
+`is_line_oa_chat_url` (staff need a LINE OA sign-in with access to that chat). The two
+links are separate columns and never derived from each other. `updateCustomerLine`
+writes only the LINE fields present in the submitted form (absent = unchanged, empty =
+cleared), so saving one link cannot erase the other.
 
 Row level security is enabled on every table. Supabase's default grants to
 `anon` and `authenticated` are revoked explicitly before granting only what

@@ -23,6 +23,8 @@ export function ActionForm({
   confirmText,
   className = "grid gap-3",
   inline = false,
+  onSuccess,
+  secondaryActions,
 }: {
   action: Action;
   children?: ReactNode;
@@ -34,6 +36,10 @@ export function ActionForm({
   confirmText?: string;
   className?: string;
   inline?: boolean;
+  /** Called once per successful result (e.g. to collapse an inline editor). */
+  onSuccess?: (message: string | null) => void;
+  /** Extra buttons beside the submit button, such as "ยกเลิก". */
+  secondaryActions?: ReactNode;
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
   const ref = useRef<HTMLFormElement>(null);
@@ -42,6 +48,14 @@ export function ActionForm({
   useEffect(() => {
     if (state.ok && resetOnSuccess) ref.current?.reset();
   }, [state, resetOnSuccess]);
+
+  const onSuccessRef = useRef(onSuccess);
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  });
+  useEffect(() => {
+    if (state.ok) onSuccessRef.current?.(state.message);
+  }, [state]);
 
   useEffect(() => {
     // Point assistive tech and focus at the first field the server rejected.
@@ -85,10 +99,11 @@ export function ActionForm({
       }}
     >
       {children}
-      <div className={inline ? "inline" : ""}>
+      <div className={inline ? "inline" : secondaryActions ? "flex flex-wrap gap-2" : ""}>
         <button type="submit" disabled={pending} className={`${buttonClasses(variant, size)} disabled:opacity-60`}>
           {pending ? (pendingLabel ?? "กำลังบันทึก") : submitLabel}
         </button>
+        {secondaryActions}
       </div>
       {state.message && (
         <div id={messageId} role={state.ok ? "status" : "alert"} className={`text-[0.9375rem] ${state.ok ? "text-teal-ink" : "text-error"}`}>
