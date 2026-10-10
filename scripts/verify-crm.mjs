@@ -453,6 +453,75 @@ const agentCookies = await agent.ctx.cookies();
   const html = await (await ctx.request.get(`${B}/staff/enquiries/${E2b}`)).text();
   ok(!/line\.me\/R\/ti\/p\/|line:\/\/|0800000102[^"]*line/i.test(html), "no LINE link is built from a phone number or ID");
 
+  // ----- LINE OA conversation link (customers.line_oa_chat_url) -----
+  const OA1 = "https://chat.line.biz/U0123456789abcdef0123456789abcdef/chat/Uaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1";
+  const OA2 = "https://chat.line.biz/U0123456789abcdef0123456789abcdef/chat/Uaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2";
+  const oaSql = () => sql(`select coalesce(line_oa_chat_url, '-') from public.customers where id = '${C2}'`);
+  const typedBefore = sql(`select line_url || '|' || line_contact_source || '|' || line_contact_updated_at from public.customers where id = '${C2}'`);
+  await p.goto(`${B}/staff/enquiries/${E2}`);
+  const oa = p.locator("[data-line-oa-chat]");
+  ok((await oa.getByRole("button", { name: "เปิดแชท LINE OA" }).isDisabled()) && (await oa.innerText()).includes("ยังไม่มีลิงก์แชท LINE OA"),
+    "OA chat: no saved link, button disabled");
+  ok((await p.locator('label[for="line-url"]').innerText()) === "ลิงก์โปรไฟล์ LINE" && (await p.locator('label[for="line-oa-chat-url"]').innerText()) === "ลิงก์แชท LINE OA",
+    "labels: ลิงก์โปรไฟล์ LINE and ลิงก์แชท LINE OA");
+  const oaHint = await p.locator(`#${(await p.getAttribute("#line-oa-chat-url", "aria-describedby")).split(" ").pop().replace(/:/g, "\\:")}`).innerText();
+  ok(oaHint === "เปิดแชทของลูกค้าใน LINE OA แล้วคัดลอก URL จากแถบที่อยู่ของเบราว์เซอร์", "OA chat field helper text tied with aria-describedby");
+
+  const badOa = ["http://chat.line.biz/Uabc/chat/Udef", "https://chat.line.biz.evil.example/Uabc", "https://evil.example/chat.line.biz/Uabc",
+    "https://user:pw@chat.line.biz/Uabc", "https://chat.line.biz@evil.example/Uabc", "https://chat.line.biz:8443/Uabc", "https://chat.line.biz:443/Uabc",
+    "https://chat.line.biz/", "https:///chat.line.biz", "javascript:alert(1)", "https://line.me/ti/p/~raksrot.demo"];
+  for (const bad of badOa) {
+    await p.fill("#line-oa-chat-url", bad);
+    await sec.locator("form").getByRole("button", { name: "บันทึกข้อมูล LINE" }).click();
+    await p.waitForTimeout(150);
+    ok((await p.getAttribute("#line-oa-chat-url", "aria-invalid")) === "true" && (await p.locator("[data-field-error]").innerText()).includes("chat.line.biz")
+      && oaSql() === "-", `browser blocks invalid OA chat link: ${bad}`);
+  }
+  // The server refuses the same links when the browser check is bypassed.
+  await sec.locator("form").evaluate((f) => { f.noValidate = true; });
+  for (const bad of ["https://chat.line.biz.evil.example/Uabc", "https://user:pw@chat.line.biz/Uabc", "https://chat.line.biz:443/Uabc", "javascript:alert(1)"]) {
+    await p.fill("#line-oa-chat-url", bad);
+    const msg = await submitExpect(sec.locator("form"), "chat.line.biz");
+    ok(msg.includes("chat.line.biz") && oaSql() === "-" && (await p.inputValue("#line-oa-chat-url")) === bad, `server refuses invalid OA chat link: ${bad}`);
+  }
+  // Save, reload, edit, clear.
+  await p.reload();
+  await p.fill("#line-oa-chat-url", OA1);
+  ok((await submitExpect(sec.locator("form"), "บันทึกข้อมูล LINE แล้ว")).includes("บันทึกข้อมูล LINE แล้ว") && oaSql() === OA1, "agent saves the OA chat link");
+  ok(sql(`select line_url || '|' || line_contact_source || '|' || line_contact_updated_at from public.customers where id = '${C2}'`) === typedBefore,
+    "saving the OA chat link keeps the personal profile link and does not restamp the typed LINE details");
+  ok(sql(`select count(*) from public.audit_logs where table_name = 'customers' and record_id = '${C2}' and new_values->>'line_oa_chat_url' = '${OA1}'`) === "1",
+    "OA chat link change recorded in the audit log");
+  for (const path of [`/staff/customers/${C2}`, `/staff/enquiries/${E2b}`]) {
+    await p.goto(`${B}${path}`);
+    const link = p.locator("[data-line-oa-open]");
+    ok((await link.getAttribute("href")) === OA1 && (await link.getAttribute("target")) === "_blank" && (await link.getAttribute("rel")) === "noopener noreferrer"
+      && (await link.innerText()).includes("เปิดแชท LINE OA") && (await p.locator("[data-line-oa-chat]").innerText()).includes("ต้องเข้าสู่ระบบ LINE OA")
+      && (await p.inputValue("#line-oa-chat-url")) === OA1,
+      `${path.split("/")[2]} page: เปิดแชท LINE OA opens the saved link in a new tab, with the sign-in note`);
+  }
+  ok((await p.locator("[data-line-verified]").count()) === 0, "an OA chat link never shows the customer as verified");
+  await p.fill("#line-oa-chat-url", OA2);
+  ok((await submitExpect(sec.locator("form"), "บันทึกข้อมูล LINE แล้ว")) && oaSql() === OA2, "agent edits the OA chat link");
+  await p.reload();
+  await p.fill("#line-oa-chat-url", "");
+  await submitExpect(sec.locator("form"), "บันทึกข้อมูล LINE แล้ว");
+  await p.reload();
+  ok(oaSql() === "-" && (await p.locator("[data-line-oa-chat]").getByRole("button", { name: "เปิดแชท LINE OA" }).isDisabled())
+    && sql(`select line_url from public.customers where id = '${C2}'`) === "https://line.me/ti/p/~raksrot.demo",
+    "agent clears the OA chat link; the profile link stays");
+  await p.fill("#line-oa-chat-url", OA1);
+  await submitExpect(sec.locator("form"), "บันทึกข้อมูล LINE แล้ว");
+
+  // The public form cannot set it, whatever it sends.
+  const pubOa = await fetch(`${B}/api/enquiries`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: B, "x-real-ip": "198.51.100.89" },
+    body: JSON.stringify({ type: "quote", planId: "car-1", carBrand: "Honda", carModel: "Jazz", carYear: "2020", name: "ตัวอย่าง รักษ์รถ", phone: "0800000102",
+      preferredChannel: "line", lineOaChatUrl: OA2, line_oa_chat_url: OA2, marketingConsent: false, idempotencyKey: crypto.randomUUID(), startedAt: Date.now() - 10000, website: "" }),
+  });
+  ok(pubOa.status < 500 && oaSql() === OA1 && !(await pubOa.text()).includes("chat.line.biz"), `public form cannot set or read the OA chat link (${pubOa.status})`);
+
   // Verified LINE Login account is shown as verified (and only that one).
   const userA = sql("select a.user_id from public.customer_accounts a where a.customer_id = '33333333-3333-4333-8333-333333333301'");
   sql(`insert into public.customer_line_accounts (user_id, line_user_id, display_name) values ('${userA}', 'U${"a".repeat(32)}', 'สมมติ LINE จริง')`);
@@ -466,6 +535,7 @@ const agentCookies = await agent.ctx.cookies();
   const v = await login("viewer@checkkhum.example", "viewer-temp-pass-2026");
   await v.p.goto(`${B}/staff/customers/${C2}`);
   ok((await v.p.locator("[data-line-contact]").innerText()).includes("raksrot.demo") && (await v.p.locator("#line-id").count()) === 0, "viewer sees LINE details without an edit form");
+  ok((await v.p.locator("[data-line-oa-open]").getAttribute("href")) === OA1 && (await v.p.locator("#line-oa-chat-url").count()) === 0, "viewer can open the OA chat but not edit the link");
   await v.ctx.close();
   const viewerCookies2 = await (await login("viewer@checkkhum.example", "viewer-temp-pass-2026")).ctx.cookies();
   await p.goto(`${B}/staff/customers/${C2}`);
@@ -480,7 +550,7 @@ const agentCookies = await agent.ctx.cookies();
   const r = await anon.request.get(`${B}/staff/customers/${C2}`, { maxRedirects: 0 });
   ok(r.status() === 307, "signed out: customer page with LINE details redirects to login");
   await anon.close();
-  const pub = await fetch(`${status.API_URL}/rest/v1/customers?select=line_id,line_url`, { headers: { apikey: status.PUBLISHABLE_KEY } });
+  const pub = await fetch(`${status.API_URL}/rest/v1/customers?select=line_id,line_url,line_oa_chat_url`, { headers: { apikey: status.PUBLISHABLE_KEY } });
   ok(pub.status >= 400, `publishable key cannot read customer LINE details (${pub.status})`);
   await ctx.close();
 }

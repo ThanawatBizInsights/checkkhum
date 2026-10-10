@@ -128,6 +128,14 @@ product page, desktop                      product page, mobile
 - **Way in from the public site:** a quiet "เข้าสู่ระบบเจ้าหน้าที่" link on its own row at the
   bottom of the footer, below a hairline. It is plain footer text (not a button) so it
   never competes with the quote path, with a 44px tap target and `rel="nofollow"`.
+- **LINE OA chat link:** the "ข้อมูลติดต่อ LINE" sheet has its own bordered "แชทใน LINE OA"
+  box, apart from the customer's personal LINE details, so a staff tool is never mistaken
+  for the customer's identity. One outline "เปิดแชท LINE OA" button (disabled until a link
+  is saved) and a plain note that staff must be signed in to LINE OA with access to the
+  chat. In the edit form the profile field is now "ลิงก์โปรไฟล์ LINE" and the new
+  "ลิงก์แชท LINE OA" field sits under it with the copy-from-the-address-bar hint; a wrong
+  link shows its error under the field on leaving it or saving, not while pasting.
+  Screenshots: `docs/screenshots/line-oa-chat/`.
 
 ## Customer portal and login menu
 

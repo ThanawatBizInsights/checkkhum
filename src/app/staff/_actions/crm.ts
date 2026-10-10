@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ActionFailure, check, f, runAction, type ActionResult } from "@/lib/server/crm/action";
-import { LINE_ID_ERROR, LINE_URL_ERROR, isLineId, isLineUrl } from "@/lib/line-contact";
+import { LINE_ID_ERROR, LINE_OA_CHAT_URL_ERROR, LINE_URL_ERROR, isLineId, isLineOaChatUrl, isLineUrl } from "@/lib/line-contact";
 
 /*
  * CRM server actions. Each one:
@@ -231,6 +231,10 @@ export async function updateCustomer(_prev: ActionResult, formData: FormData): P
  * Typed by staff, so always unverified: the database stamps them
  * line_contact_source = 'staff_entry'. The verified LINE identity
  * (customer_line_accounts) is never written here.
+ *
+ * line_oa_chat_url is the LINE OA Manager conversation (chat.line.biz) staff
+ * pasted. It is staff-only and is not a LINE identity, so the database leaves
+ * line_contact_source alone when only this link changes.
  */
 export async function updateCustomerLine(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const schema = z.object({
@@ -244,13 +248,22 @@ export async function updateCustomerLine(_prev: ActionResult, formData: FormData
       (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
       z.string().trim().refine(isLineUrl, LINE_URL_ERROR).optional(),
     ),
+    line_oa_chat_url: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      z.string().trim().refine(isLineOaChatUrl, LINE_OA_CHAT_URL_ERROR).optional(),
+    ),
     back_to: z.string().regex(/^\/staff\/[a-z0-9/-]+$/),
   });
   return runAction("agent", schema, formData, async ({ id, back_to, ...input }, staff) => {
     check(
       await staff.db
         .from("customers")
-        .update({ line_display_name: input.line_display_name ?? null, line_id: input.line_id ?? null, line_url: input.line_url ?? null })
+        .update({
+          line_display_name: input.line_display_name ?? null,
+          line_id: input.line_id ?? null,
+          line_url: input.line_url ?? null,
+          line_oa_chat_url: input.line_oa_chat_url ?? null,
+        })
         .eq("id", id)
         .select("id"),
       { expectRows: true },

@@ -127,13 +127,13 @@ isOneToOne: false
                   ]
                 },"customers": {
                   Row: {
-                    "created_at": string,"email": string | null,"full_name": string,"id": string,"line_contact_source": string | null,"line_contact_updated_at": string | null,"line_display_name": string | null,"line_id": string | null,"line_url": string | null,"notes": string | null,"phone": string | null,"preferred_channel": Database["public"]['Enums']["contact_channel"],"updated_at": string
+                    "created_at": string,"email": string | null,"full_name": string,"id": string,"line_contact_source": string | null,"line_contact_updated_at": string | null,"line_display_name": string | null,"line_id": string | null,"line_oa_chat_url": string | null,"line_url": string | null,"notes": string | null,"phone": string | null,"preferred_channel": Database["public"]['Enums']["contact_channel"],"updated_at": string
                   }
                   Insert: {
-                    "created_at"?: string,"email"?: string | null,"full_name": string,"id"?: string,"line_contact_source"?: string | null,"line_contact_updated_at"?: string | null,"line_display_name"?: string | null,"line_id"?: string | null,"line_url"?: string | null,"notes"?: string | null,"phone"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"updated_at"?: string
+                    "created_at"?: string,"email"?: string | null,"full_name": string,"id"?: string,"line_contact_source"?: string | null,"line_contact_updated_at"?: string | null,"line_display_name"?: string | null,"line_id"?: string | null,"line_oa_chat_url"?: string | null,"line_url"?: string | null,"notes"?: string | null,"phone"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"email"?: string | null,"full_name"?: string,"id"?: string,"line_contact_source"?: string | null,"line_contact_updated_at"?: string | null,"line_display_name"?: string | null,"line_id"?: string | null,"line_url"?: string | null,"notes"?: string | null,"phone"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"updated_at"?: string
+                    "created_at"?: string,"email"?: string | null,"full_name"?: string,"id"?: string,"line_contact_source"?: string | null,"line_contact_updated_at"?: string | null,"line_display_name"?: string | null,"line_id"?: string | null,"line_oa_chat_url"?: string | null,"line_url"?: string | null,"notes"?: string | null,"phone"?: string | null,"preferred_channel"?: Database["public"]['Enums']["contact_channel"],"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -554,6 +554,7 @@ isOneToOne: false
 "line_contact_updated_at": string | null,
 "line_display_name": string | null,
 "line_id": string | null,
+"line_oa_chat_url": string | null,
 "line_url": string | null,
 "notes": string | null,
 "phone": string | null,
