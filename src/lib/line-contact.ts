@@ -22,6 +22,41 @@ export function isLineUrl(value: string): boolean {
   return value.length <= 300 && LINE_URL.test(value);
 }
 
+/**
+ * LINE OA Manager conversation link, e.g. https://chat.line.biz/<account>/chat/<user>.
+ * Same character rule as the database (private.is_line_oa_chat_url); on top of
+ * that the URL is parsed, and must be https, exactly the host chat.line.biz, with
+ * no user name, password or port, and already in canonical form (so
+ * "https://chat.line.biz:443/…", "HTTPS://CHAT.LINE.BIZ/…" and backslash tricks fail).
+ */
+const LINE_OA_CHAT_URL = /^https:\/\/chat\.line\.biz\/[A-Za-z0-9._~%!$&()*+,;=:@/?#-]+$/;
+
+export const LINE_OA_CHAT_URL_ERROR = "ลิงก์แชท LINE OA ต้องเป็นลิงก์ https://chat.line.biz/… ที่คัดลอกจากแถบที่อยู่ของเบราว์เซอร์";
+
+export function isLineOaChatUrl(value: string): boolean {
+  if (value.length > 500 || !LINE_OA_CHAT_URL.test(value)) return false;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return (
+    url.protocol === "https:" &&
+    url.hostname === "chat.line.biz" &&
+    url.port === "" &&
+    url.username === "" &&
+    url.password === "" &&
+    url.pathname.length > 1 &&
+    url.href === value
+  );
+}
+
+/** A saved LINE OA chat link that may be opened, or null. */
+export function safeLineOaChatHref(value: string | null | undefined): string | null {
+  return value && isLineOaChatUrl(value) ? value : null;
+}
+
 export function isLineId(value: string): boolean {
   return LINE_ID.test(value);
 }

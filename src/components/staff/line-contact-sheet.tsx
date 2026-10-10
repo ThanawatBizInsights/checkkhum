@@ -1,8 +1,11 @@
 import { updateCustomerLine } from "@/app/staff/_actions/crm";
 import { formatDateTime } from "@/lib/crm-labels";
+import { safeLineOaChatHref } from "@/lib/line-contact";
+import { buttonClasses } from "../button";
 import type { StaffContext } from "@/lib/server/staff-auth";
 import { ActionForm } from "./action-form";
 import { LineContactActions } from "./line-contact-actions";
+import { LineOaChatInput } from "./line-oa-chat-input";
 import { Empty, Field, KeyValue, Pill, Sheet } from "./ui";
 
 type CustomerLine = {
@@ -10,6 +13,7 @@ type CustomerLine = {
   line_display_name: string | null;
   line_id: string | null;
   line_url: string | null;
+  line_oa_chat_url: string | null;
   line_contact_source: string | null;
   line_contact_updated_at: string | null;
 };
@@ -25,7 +29,10 @@ const sourceLabels: Record<string, string> = {
  *    (customer_line_accounts, written after LINE verified the ID token);
  *  - the customer's typed LINE details (shared by all their enquiries), always
  *    marked unverified, editable by agents and admins;
- *  - on an enquiry, what the visitor typed with that enquiry, read-only.
+ *  - on an enquiry, what the visitor typed with that enquiry, read-only;
+ *  - the LINE OA conversation link staff pasted (chat.line.biz). It opens the
+ *    chat for staff signed in to LINE OA; it is not a LINE identity and never
+ *    makes anything "verified".
  * Nothing here matches or links customers by LINE name, ID or phone.
  */
 export async function LineContactSheet({
@@ -44,6 +51,7 @@ export async function LineContactSheet({
     ? await staff.db.from("customer_line_accounts").select("display_name, linked_at").eq("user_id", account.user_id).maybeSingle()
     : { data: null };
 
+  const oaChatHref = safeLineOaChatHref(customer.line_oa_chat_url);
   const hasTyped = Boolean(customer.line_display_name || customer.line_id || customer.line_url);
   const enquiryHasLine = Boolean(enquiryLine && (enquiryLine.lineId || enquiryLine.lineUrl));
   const enquiryDiffers =
@@ -69,7 +77,7 @@ export async function LineContactSheet({
                 items={[
                   ["ชื่อใน LINE", customer.line_display_name ?? <span className="text-ink-soft">-</span>],
                   ["LINE ID", customer.line_id ? <span className="font-semibold" data-line-id>{customer.line_id}</span> : <span className="text-ink-soft">-</span>],
-                  ["ลิงก์ LINE", customer.line_url ? <span className="break-all">{customer.line_url}</span> : <span className="text-ink-soft">-</span>],
+                  ["ลิงก์โปรไฟล์ LINE", customer.line_url ? <span className="break-all">{customer.line_url}</span> : <span className="text-ink-soft">-</span>],
                 ]}
               />
               <p className="mt-2 flex flex-wrap items-center gap-2 text-[0.9375rem] text-ink-soft">
@@ -84,6 +92,31 @@ export async function LineContactSheet({
           <LineContactActions lineId={customer.line_id} lineUrl={customer.line_url} />
         </div>
 
+        <div className="rounded-[var(--radius-control)] border border-line px-4 py-3" data-line-oa-chat>
+          <h3 className="text-base text-navy">แชทใน LINE OA</h3>
+          {oaChatHref ? (
+            <a
+              href={oaChatHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-line-oa-open
+              className={`${buttonClasses("outline", "sm")} mt-2`}
+            >
+              เปิดแชท LINE OA
+              <span className="sr-only"> (เปิดในแท็บใหม่)</span>
+            </a>
+          ) : (
+            <button type="button" disabled className={`${buttonClasses("outline", "sm")} mt-2 cursor-not-allowed opacity-50`}>
+              เปิดแชท LINE OA
+            </button>
+          )}
+          <p className="mt-2 text-[0.9375rem] text-ink-soft">
+            {oaChatHref
+              ? "ต้องเข้าสู่ระบบ LINE OA ด้วยบัญชีที่มีสิทธิ์เข้าถึงแชทนี้ก่อน จึงจะเห็นบทสนทนา"
+              : "ยังไม่มีลิงก์แชท LINE OA ที่บันทึกไว้"}
+          </p>
+        </div>
+
         {enquiryHasLine && enquiryDiffers && (
           <div className="rounded-[var(--radius-control)] border border-line px-4 py-3" data-enquiry-line>
             <h3 className="text-base text-navy">LINE ที่ส่งมากับคำขอนี้</h3>
@@ -91,7 +124,7 @@ export async function LineContactSheet({
             <KeyValue
               items={[
                 ["LINE ID", enquiryLine!.lineId ?? "-"],
-                ["ลิงก์ LINE", enquiryLine!.lineUrl ? <span className="break-all">{enquiryLine!.lineUrl}</span> : "-"],
+                ["ลิงก์โปรไฟล์ LINE", enquiryLine!.lineUrl ? <span className="break-all">{enquiryLine!.lineUrl}</span> : "-"],
               ]}
             />
             <LineContactActions lineId={enquiryLine!.lineId} lineUrl={enquiryLine!.lineUrl} label="จากคำขอนี้" />
@@ -110,9 +143,10 @@ export async function LineContactSheet({
               <Field label="LINE ID" htmlFor="line-id" hint="LINE ID ที่ลูกค้าแจ้ง ใช้ค้นหาในแอป LINE">
                 <input id="line-id" name="line_id" defaultValue={customer.line_id ?? ""} maxLength={51} autoCapitalize="none" spellCheck={false} className="field-input" />
               </Field>
-              <Field label="ลิงก์ LINE" htmlFor="line-url" hint="ลิงก์โปรไฟล์หรือเพิ่มเพื่อนที่ลูกค้าส่งมา (https://line.me/… หรือ https://lin.ee/…)">
+              <Field label="ลิงก์โปรไฟล์ LINE" htmlFor="line-url" hint="ลิงก์โปรไฟล์หรือเพิ่มเพื่อนที่ลูกค้าส่งมา (https://line.me/… หรือ https://lin.ee/…)">
                 <input id="line-url" name="line_url" type="url" inputMode="url" defaultValue={customer.line_url ?? ""} maxLength={300} autoCapitalize="none" spellCheck={false} className="field-input" />
               </Field>
+              <LineOaChatInput defaultValue={customer.line_oa_chat_url} />
             </ActionForm>
           </div>
         )}

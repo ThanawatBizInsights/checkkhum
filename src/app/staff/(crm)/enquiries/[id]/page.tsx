@@ -47,7 +47,7 @@ export default async function EnquiryPage({ params }: { params: Promise<{ id: st
 
   const { data: e } = await staff.db
     .from("enquiries")
-    .select("*, customers(id, full_name, phone, line_id, line_display_name, line_url, line_contact_source, line_contact_updated_at, preferred_channel), vehicles(id, description, make, model, model_year, registration_plate, is_ev), staff_users(full_name)")
+    .select("*, customers(id, full_name, phone, line_id, line_display_name, line_url, line_oa_chat_url, line_contact_source, line_contact_updated_at, preferred_channel), vehicles(id, description, make, model, model_year, registration_plate, is_ev), staff_users(full_name)")
     .eq("id", id)
     .maybeSingle();
   if (!e) notFound();
